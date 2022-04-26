@@ -27,6 +27,8 @@ public interface IConfig {
 	public static final String PROPERTY_YP_MOISTURE_IX ="yield-processor.attribute.moisture-index";
 	public static final String PROPERTY_YP_YIELD_IX ="yield-processor.attribute.yield-index";
 	
+	public static final String PROPERTY_YP_SEGMENT_DETERMINATION_MODE_SECS_MOD ="yield-processor.harvest-pass.segment-determination-seconds-mode-modifier";
+	
 	public static final String PROPERTY_YP_NUMBER_SECONDS_HARVEST_FILL_MODE ="yield-processor.harvest-pass-start-end-mode-error.start-fill-number-seconds";
 	public static final String PROPERTY_YP_NUMBER_SECONDS_HARVEST_FINISH_MODE ="yield-processor.harvest-pass-start-end-mode-error.finish-fill-number-seconds";	
 	public static final String PROPERTY_YP_SHORT_SEGMENT_SIZE ="yield-processor.harvest-pass-start-end-mode-error.short-segment-size";

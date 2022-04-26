@@ -49,7 +49,7 @@ class TestYieldProcessor {
 		
 		SpatialDataset ds=createInputDatasaet();
 		int timestampIx =0;
-		List<SpatialDataset> segments = YieldProcessor.toHarvestPassSet(ds, timestampIx,",");
+		List<SpatialDataset> segments = YieldProcessor.toHarvestPassSet(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		
 		
 		
@@ -112,7 +112,7 @@ class TestYieldProcessor {
 		
 		SpatialDataset ds=createInputDatasaet();
 		int timestampIx =0;
-		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",");
+		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		
 		
 		
@@ -166,7 +166,7 @@ class TestYieldProcessor {
 		expected.addSpatialData(new SpatialData(2,new Point2D.Double(0,0),"2021-11-06T23:46:14,0"));
 		expected.addSpatialData(new SpatialData(3,new Point2D.Double(0,0),"2021-11-06T23:46:20,0"));
 		int timestampIx = 0;
-		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",");
+		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		
 		testTwoDataSetsEqual(expected,actual);
 		
@@ -183,7 +183,7 @@ class TestYieldProcessor {
 		expected.addSpatialData(new SpatialData(1,new Point2D.Double(0,0),"2021-11-06T23:46:13,0"));
 		
 		int timestampIx = 0;
-		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",");
+		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		
 		testTwoDataSetsEqual(expected,actual);
 		
@@ -201,7 +201,7 @@ class TestYieldProcessor {
 		expected.addSpatialData(new SpatialData(2,new Point2D.Double(0,0),"2021-11-06T23:46:14,0"));
 		
 		int timestampIx = 0;
-		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",");
+		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		
 		testTwoDataSetsEqual(expected,actual);
 		
@@ -220,7 +220,7 @@ class TestYieldProcessor {
 		expected.addSpatialData(new SpatialData(2,new Point2D.Double(0,0),"2021-11-06T23:46:25,0"));
 		
 		int timestampIx = 0;
-		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",");
+		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		
 		testTwoDataSetsEqual(expected,actual);
 		
@@ -240,7 +240,7 @@ class TestYieldProcessor {
 		expected.addSpatialData(new SpatialData(3,new Point2D.Double(0,0),"2021-11-06T23:47:55,0"));
 		
 		int timestampIx = 0;
-		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",");
+		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		
 		testTwoDataSetsEqual(expected,actual);
 		
@@ -262,7 +262,7 @@ class TestYieldProcessor {
 		expected.addSpatialData(new SpatialData(3,new Point2D.Double(0,0),"2021-11-06T23:46:26,0"));
 		
 		int timestampIx = 0;
-		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",");
+		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		
 		testTwoDataSetsEqual(expected,actual);
 		
@@ -283,7 +283,7 @@ class TestYieldProcessor {
 		expected.addSpatialData(new SpatialData(3,new Point2D.Double(0,0),"2021-11-06T23:46:56,0"));
 		
 		int timestampIx = 0;
-		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",");
+		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		
 		testTwoDataSetsEqual(expected,actual);
 		
@@ -305,7 +305,7 @@ class TestYieldProcessor {
 		expected.addSpatialData(new SpatialData(3,new Point2D.Double(0,0),"2021-11-06T23:46:57,0"));
 		
 		int timestampIx = 0;
-		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",");
+		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		
 		testTwoDataSetsEqual(expected,actual);
 		
@@ -327,7 +327,7 @@ class TestYieldProcessor {
 		expected.addSpatialData(new SpatialData(3,new Point2D.Double(0,0),"2021-11-06T23:47:12,1"));
 		
 		int timestampIx = 0;
-		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",");
+		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		
 		testTwoDataSetsEqual(expected,actual);
 		
@@ -350,7 +350,7 @@ class TestYieldProcessor {
 		expected.addSpatialData(new SpatialData(3,new Point2D.Double(0,0),"2021-11-06T23:47:12,0"));
 		
 		int timestampIx = 0;
-		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",");
+		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		
 		testTwoDataSetsEqual(expected,actual);
 		
@@ -374,7 +374,7 @@ class TestYieldProcessor {
 		expected.addSpatialData(new SpatialData(2,new Point2D.Double(0,0),"hi,2021-11-06T23:46:14,132,0"));
 		expected.addSpatialData(new SpatialData(3,new Point2D.Double(0,0),"hello,2021-11-06T23:46:20,59,0"));
 		int timestampIx = 1;
-		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",");
+		SpatialDataset actual = YieldProcessor.toHarvestPassDataset(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		
 		testTwoDataSetsEqual(expected,actual);
 		
@@ -389,7 +389,7 @@ class TestYieldProcessor {
 
 		int timestampIx = 0;
 		
-		List<SpatialDataset> segments = YieldProcessor.toHarvestPassSet(ds, timestampIx,",");
+		List<SpatialDataset> segments = YieldProcessor.toHarvestPassSet(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		
 		List<SpatialDataset> actual = YieldProcessor.cleanHarvestDatasetSegments(segments, timestampIx,",",2,1,4);
 		
@@ -454,7 +454,7 @@ class TestYieldProcessor {
 		SpatialDataset ds=createInputDatasaet();
 
 		int timestampIx = 0;
-		List<SpatialDataset> segments = YieldProcessor.toHarvestPassSet(ds, timestampIx,",");
+		List<SpatialDataset> segments = YieldProcessor.toHarvestPassSet(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		List<SpatialDataset> actual = YieldProcessor.cleanHarvestDatasetSegments(segments, timestampIx,",",1,1,2);
 		
 		//testTwoDataSetsEqual(expected,actual);
@@ -517,7 +517,7 @@ class TestYieldProcessor {
 		SpatialDataset ds=createInputDatasaet();
 
 		int timestampIx = 0;
-		List<SpatialDataset> segments = YieldProcessor.toHarvestPassSet(ds, timestampIx,",");
+		List<SpatialDataset> segments = YieldProcessor.toHarvestPassSet(ds, timestampIx,",",YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 		List<SpatialDataset> actual = YieldProcessor.cleanHarvestDatasetSegments(segments, timestampIx,",",1,2,3);
 		
 		//testTwoDataSetsEqual(expected,actual);
@@ -960,7 +960,7 @@ class TestYieldProcessor {
 	inputDataset.addSpatialData(new SpatialData(4,new Point2D.Double(0,3),"2021-11-06T23:46:49,1"));
 	inputDataset.addSpatialData(new SpatialData(5,new Point2D.Double(0,4),"2021-11-06T23:46:50,2"));
 	//remove gps outliers first. this is important for computeing the area harvested
-	SpatialDataset actual=YieldProcessor.removeGPSPositionErrors( inputDataset, timestampIx,  speedIx,  sep, maxGPSError,mphFlag);
+	SpatialDataset actual=YieldProcessor.removeGPSPositionErrors( inputDataset, timestampIx,  speedIx,  sep, maxGPSError,mphFlag,YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 	
 	SpatialDataset expected = new SpatialDataset();
 	
@@ -985,7 +985,7 @@ class TestYieldProcessor {
 	inputDataset.addSpatialData(new SpatialData(4,new Point2D.Double(0,3),"2021-11-06T23:46:49,1"));
 	inputDataset.addSpatialData(new SpatialData(5,new Point2D.Double(0,4),"2021-11-06T23:46:50,2"));
 	//remove gps outliers first. this is important for computeing the area harvested
-	actual=YieldProcessor.removeGPSPositionErrors( inputDataset, timestampIx,  speedIx,  sep, maxGPSError,mphFlag);
+	actual=YieldProcessor.removeGPSPositionErrors( inputDataset, timestampIx,  speedIx,  sep, maxGPSError,mphFlag,YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 	
 	expected = new SpatialDataset();
 	
@@ -1011,7 +1011,7 @@ class TestYieldProcessor {
 	inputDataset.addSpatialData(new SpatialData(4,new Point2D.Double(0,3),"2021-11-06T23:46:49,1"));
 	inputDataset.addSpatialData(new SpatialData(5,new Point2D.Double(0,4),"2021-11-06T23:46:50,2"));
 	//remove gps outliers first. this is important for computeing the area harvested
-	actual=YieldProcessor.removeGPSPositionErrors( inputDataset, timestampIx,  speedIx,  sep, maxGPSError,mphFlag);
+	actual=YieldProcessor.removeGPSPositionErrors( inputDataset, timestampIx,  speedIx,  sep, maxGPSError,mphFlag,YieldProcessor.DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 	
 	expected = new SpatialDataset();
 	

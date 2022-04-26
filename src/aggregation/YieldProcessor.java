@@ -33,6 +33,7 @@ public class YieldProcessor {
 
 	final public static double MILES_PER_HOUR_TO_METERS_PER_SECOND_DIVISOR=2.237;
 	final public static double FEET_PER_METERS=3.28084;
+	final public static int DEFAULT_SEGMENT_MODE_SECONDS_MOD = 3;
 	public YieldProcessor() {
 		// TODO Auto-generated constructor stub
 	}
@@ -55,7 +56,7 @@ public class YieldProcessor {
 
 			SpatialDataset res2;
 			try {
-				res2 = YieldProcessor.identifyTurns(FileHandler.readCSVIntoSpatialDataset(inputCSV,null,","),angleEp,windowSize,timestampIx,",");
+				res2 = YieldProcessor.identifyTurns(FileHandler.readCSVIntoSpatialDataset(inputCSV,null,","),angleEp,windowSize,timestampIx,",",DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 
 				String inputCSVHeader = FileHandler.readCSVHeader(inputCSV);
 
@@ -77,7 +78,7 @@ public class YieldProcessor {
 			try {
 
 
-				toHarvestPassesCSV( inputCSV, outputCSV,  timestampIx,",");
+				toHarvestPassesCSV( inputCSV, outputCSV,  timestampIx,",",DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
@@ -95,7 +96,7 @@ public class YieldProcessor {
 
 			SpatialDataset inputDataset = FileHandler.readCSVIntoSpatialDataset(inputCSV,null,sep);
 
-			SpatialDataset res = applyForwardBackwardFilter( inputDataset, timestampIx,  movingAverageWindowSizeInSeconds, attributeIx, sep,  minMaxBoundsMod);
+			SpatialDataset res = applyForwardBackwardFilter( inputDataset, timestampIx,  movingAverageWindowSizeInSeconds, attributeIx, sep,  minMaxBoundsMod,DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 
 
 			String inputCSVHeader = FileHandler.readCSVHeader(inputCSV);
@@ -123,10 +124,10 @@ public class YieldProcessor {
 		SpatialDataset inputDataset = FileHandler.readCSVIntoSpatialDataset(inputCSV,null,sep);
 		
 		//remove gps outliers first. this is important for computeing the area harvested
-		SpatialDataset res=removeGPSPositionErrors( inputDataset, timestampIx,  speedIx,  sep, maxGPSError,mphFlag);
+		SpatialDataset res=removeGPSPositionErrors( inputDataset, timestampIx,  speedIx,  sep, maxGPSError,mphFlag,DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 			
 		
-		res = identifyOverlap( res, timestampIx,  swathWidthIx, sep, preventFilterSegNum,widthMod,usingSwathWidthInFeet);
+		res = identifyOverlap( res, timestampIx,  swathWidthIx, sep, preventFilterSegNum,widthMod,usingSwathWidthInFeet,DEFAULT_SEGMENT_MODE_SECONDS_MOD);
 
 
 		String inputCSVHeader = FileHandler.readCSVHeader(inputCSV);
@@ -145,11 +146,11 @@ public class YieldProcessor {
 		String inputCSVHeader = FileHandler.readCSVHeader(inputCSV);
 		SpatialDataset inputDataset = FileHandler.readCSVIntoSpatialDataset(inputCSV,null,sep);
 		
-		
+		int modeSegMod = config.getIntProperty(IConfig.PROPERTY_YP_SEGMENT_DETERMINATION_MODE_SECS_MOD);
 		
 		
 		int timestampIx = config.getIntProperty(IConfig.PROPERTY_YP_TIMESTAMP_IX);
-		List<SpatialDataset> harvestSegements=toHarvestPassSet(inputDataset,timestampIx,sep);
+		List<SpatialDataset> harvestSegements=toHarvestPassSet(inputDataset,timestampIx,sep,modeSegMod);
 		
 		
 		int numSecsFillSamplesError = config.getIntProperty(IConfig.PROPERTY_YP_NUMBER_SECONDS_HARVEST_FILL_MODE);
@@ -207,7 +208,7 @@ public class YieldProcessor {
 		for(int i=0;i<segments.size();i++) {
 			SpatialDataset seg = segments.get(i);
 			
-			SpatialDataset tmpRes = applyForwardBackwardFilter( seg, timestampIx,  spdMovingAverageWindowSizeInSeconds, speedIx, sep,  spdMinMaxBoundsMod);
+			SpatialDataset tmpRes = applyForwardBackwardFilter( seg, timestampIx,  spdMovingAverageWindowSizeInSeconds, speedIx, sep,  spdMinMaxBoundsMod,modeSegMod);
 			segments.set(i, tmpRes);
 			
 		}
@@ -237,7 +238,7 @@ public class YieldProcessor {
 		for(int i=0;i<segments.size();i++) {
 			SpatialDataset seg = segments.get(i);
 			
-			SpatialDataset tmpRes = removeGPSPositionErrors( seg,timestampIx, speedIx,  sep,maxGPSError, mphFlag);
+			SpatialDataset tmpRes = removeGPSPositionErrors( seg,timestampIx, speedIx,  sep,maxGPSError, mphFlag,modeSegMod);
 			segments.set(i, tmpRes);
 			
 		}
@@ -328,7 +329,7 @@ public class YieldProcessor {
 		for(int i=0;i<segments.size();i++) {
 			SpatialDataset seg = segments.get(i);
 			
-			SpatialDataset tmpRes = applyForwardBackwardFilter( seg, timestampIx,  yieldMovingAverageWindowSizeInSeconds, yieldIx, sep,  yieldMinMaxBoundsMod);
+			SpatialDataset tmpRes = applyForwardBackwardFilter( seg, timestampIx,  yieldMovingAverageWindowSizeInSeconds, yieldIx, sep,  yieldMinMaxBoundsMod,modeSegMod);
 			segments.set(i, tmpRes);
 			
 		}
@@ -386,16 +387,17 @@ public class YieldProcessor {
 	 * @param angleEpsilon the threshodl angle in degrees before considering a pair of points not part of same segment
 	 * @param movingAverageWindowSize the number of angles kept in history to compute the average angle
 	 * @param sep attribute seperator
+	 * @param modeSegMod number of times duration ellapsed mode before considrered outleir (3 is recommended)
 	 * @return a SpatialDataset with boolean flag appended to attribute where element i is true when the ith point is part of turn, and false otherwise 
 	 */
-	public static SpatialDataset identifyTurns(SpatialDataset inputData, double angleEpsilon, int movingAverageWindowSize,int timestampIx, String sep) {
+	public static SpatialDataset identifyTurns(SpatialDataset inputData, double angleEpsilon, int movingAverageWindowSize,int timestampIx, String sep,int modeSegMod) {
 
 
 
 		SpatialDataset res = new SpatialDataset(inputData.size());
 
 
-		List<SpatialDataset> segments = toHarvestPassSet(inputData,timestampIx,sep);
+		List<SpatialDataset> segments = toHarvestPassSet(inputData,timestampIx,sep,modeSegMod);
 		//make sure to splite the dataset into harvest passes/segmenets and apply turn detection only for the points within segements
 		//iterate over every segmgent and apply turn detection
 		for(SpatialDataset segment : segments) {
@@ -633,7 +635,7 @@ public class YieldProcessor {
 	 * @return list of harvest passes/segments
 	 * @throws IOException 
 	 */
-	public static void toHarvestPassesCSV(String inputCSV, String outputCSV, int timestampIx,String sep) throws IOException{
+	public static void toHarvestPassesCSV(String inputCSV, String outputCSV, int timestampIx,String sep, int modeSegMod) throws IOException{
 
 		SpatialDataset inputDataset = FileHandler.readCSVIntoSpatialDataset(inputCSV,null,sep);
 
@@ -641,7 +643,7 @@ public class YieldProcessor {
 
 
 
-		SpatialDataset outputDataset = toHarvestPassDataset(inputDataset,timestampIx,sep);
+		SpatialDataset outputDataset = toHarvestPassDataset(inputDataset,timestampIx,sep,modeSegMod);
 
 
 		FileHandler.writeSpatialDatasetToFile(outputCSV,inputCSVHeader+",segmentId", outputDataset,true,sep,false);
@@ -657,12 +659,13 @@ public class YieldProcessor {
 	 * @param timestampIx index of the tiemstamp attribute
 	 * @param sep attribute seperator
 	 * @return spatialdataset with segmenet/harvest-pass id identified in the attributes
+	 * @param modeSegMod number of times duration ellapsed mode before considrered outleir (3 is recommended)
 	 * @throws IOException 
 	 */
-	public static SpatialDataset toHarvestPassDataset(SpatialDataset inputDataset, int timestampIx,String sep) throws IOException{
+	public static SpatialDataset toHarvestPassDataset(SpatialDataset inputDataset, int timestampIx,String sep,int modeSegMod) throws IOException{
 
 
-		List<SpatialDataset> segments = toHarvestPassSet(inputDataset,timestampIx,sep);
+		List<SpatialDataset> segments = toHarvestPassSet(inputDataset,timestampIx,sep,modeSegMod);
 
 		SpatialDataset outputDataset = new SpatialDataset(inputDataset.size());
 
@@ -696,9 +699,10 @@ public class YieldProcessor {
 	 * @param inputDataset
 	 * @param timestampIx index of the tiemstamp attribute
 	 * @param sep attribute seperator
+	 * @param modeSegMod number of times duration ellapsed mode before considrered outleir (3 is recommended)
 	 * @return list of harvest passes/segments
 	 */
-	public static List<SpatialDataset> toHarvestPassSet(SpatialDataset inputDataset, int timestampIx,String sep){
+	public static List<SpatialDataset> toHarvestPassSet(SpatialDataset inputDataset, int timestampIx,String sep, int modeSegMod){
 
 		List<SpatialDataset> res = new ArrayList<SpatialDataset>(128);
 
@@ -741,7 +745,7 @@ public class YieldProcessor {
 		int sampleFreq = Stats.mode(deltaTimes, deltaTimes.length);
 
 		//harvest pass /segement time threshold. the amount of time between samples to consider a new pass
-		int timeThresh=3*sampleFreq;
+		int timeThresh=modeSegMod*sampleFreq;
 
 		//start creating the datastes for each harvest pass by identifying start and end of passes
 		//passes tend to have a minimum of 2 poitns (start and end). there is a small chance the last point is an outlier and it's not part of previous pass
@@ -989,14 +993,14 @@ public class YieldProcessor {
 		 
 	}
 
-	public static SpatialDataset applyForwardBackwardFilter(SpatialDataset inputData,int timestampIx, int movingAverageWindowSizeInSeconds,int attributeIx,String sep, double minMaxBoundsMod) {
+	public static SpatialDataset applyForwardBackwardFilter(SpatialDataset inputData,int timestampIx, int movingAverageWindowSizeInSeconds,int attributeIx,String sep, double minMaxBoundsMod,int modeSegMod) {
 
 
 
 		SpatialDataset res = new SpatialDataset(inputData.size());
 
 
-		List<SpatialDataset> segments = toHarvestPassSet(inputData,timestampIx,sep);
+		List<SpatialDataset> segments = toHarvestPassSet(inputData,timestampIx,sep,modeSegMod);
 		//make sure to splite the dataset into harvest passes/segmenets and apply the back-forward filter detection only for the points within segements
 		//iterate over every segmgent and apply  filter
 		for(SpatialDataset segment : segments) {
@@ -1252,11 +1256,12 @@ public class YieldProcessor {
 	 * @param sep seperator of attribute
 	 * @param maxGPSError maximum error the GPS reading should have (e.g., 2, meaning readings can be at most 2 m away from location recorded)
 	 * @param mphFlag flag indicating whether speed is in miles per hour
+	 * @param modeSegMod number of times duration ellapsed mode before considrered outleir (3 is recommended)
 	 * @return dataset with points that have coordinate issues removed
 	 */
-	public static SpatialDataset removeGPSPositionErrors(SpatialDataset inputData,int timestampIx, int speedIx, String sep,double maxGPSError, boolean mphFlag) {
+	public static SpatialDataset removeGPSPositionErrors(SpatialDataset inputData,int timestampIx, int speedIx, String sep,double maxGPSError, boolean mphFlag, int modeSegMod) {
 		
-	List<SpatialDataset> segments = toHarvestPassSet(inputData,timestampIx,sep);
+	List<SpatialDataset> segments = toHarvestPassSet(inputData,timestampIx,sep,modeSegMod);
 	
 	
 	
@@ -1330,10 +1335,11 @@ public class YieldProcessor {
 	 * @param swathWidthIx index of the swath width attribute of harvested
 	 * @param sep seperator of attribute values
 	 * @param maxGPSError max number of meters the gps can be off
+	 * @param modeSegMod number of times duration ellapsed mode before considrered outleir (3 is recommended)
 	 * @return
 	 */
 	
-	public static SpatialDataset identifyOverlap(SpatialDataset inputData,int timestampIx, int swathWidthIx,String sep,int preventFilterSegNum,double widthMod,boolean usingSwathWidthFeetFlag) {
+	public static SpatialDataset identifyOverlap(SpatialDataset inputData,int timestampIx, int swathWidthIx,String sep,int preventFilterSegNum,double widthMod,boolean usingSwathWidthFeetFlag,int modeSegMod) {
 
 
 
@@ -1343,7 +1349,7 @@ public class YieldProcessor {
 		
 		
 		
-			boolean [] outlier = _identifyOverlap(inputData, timestampIx,  swathWidthIx,sep,preventFilterSegNum,widthMod,usingSwathWidthFeetFlag);
+			boolean [] outlier = _identifyOverlap(inputData, timestampIx,  swathWidthIx,sep,preventFilterSegNum,widthMod,usingSwathWidthFeetFlag,modeSegMod);
 
 			for(int i = 0;i<inputData.size();i++) {
 				SpatialData inputPt = inputData.getSpatialData(i);
@@ -1377,15 +1383,16 @@ public class YieldProcessor {
 	 * @param sep seperator of attribute values
 	 * @param preventFilterSegNum number of overlaps that can occur whitint a segement. Example, 2 means the next two points from point i will not be considered overlapping in point i
 	 * @param widthMod the modifier to apply to the harvester's width
-	 * @param usingSwathWidthFeetFlag flag indicating that we are using feet for swath width and have to convert from feet to meter 
+	 * @param usingSwathWidthFeetFlag flag indicating that we are using feet for swath width and have to convert from feet to meter
+	 * @param modeSegMod number of times duration ellapsed mode before considrered outleir (3 is recommended) 
 	 * @return
 	 */
-	public static boolean [] _identifyOverlap(SpatialDataset inputData,int timestampIx, int swathWidthIx,String sep,int preventFilterSegNum,double widthMod,boolean usingSwathWidthFeetFlag) {
+	public static boolean [] _identifyOverlap(SpatialDataset inputData,int timestampIx, int swathWidthIx,String sep,int preventFilterSegNum,double widthMod,boolean usingSwathWidthFeetFlag,int modeSegMod) {
 	
 	
 		
 				
-		List<SpatialDataset> segments = toHarvestPassSet(inputData,timestampIx,sep);
+		List<SpatialDataset> segments = toHarvestPassSet(inputData,timestampIx,sep,modeSegMod);
 		return  __identifyOverlap(segments,timestampIx, swathWidthIx, sep, preventFilterSegNum, widthMod,usingSwathWidthFeetFlag);
 		
 	}
