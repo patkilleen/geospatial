@@ -267,7 +267,7 @@ public class YieldProcessor {
 				
 				String newAttributes = pt.getAttributes();
 
-				if(outlier[i]) {
+				if(outlier[ptIx]) {
 					newAttributes = newAttributes + sep + "1";
 				}else {
 					newAttributes = newAttributes + sep + "0";
@@ -1456,7 +1456,7 @@ public class YieldProcessor {
 				//compute the harvest area of this point and add union
 				//we can't compute harvest area of first pt. need atleast 2 points
 				//dont' comptue harvest area if ignoring the reading
-				if(i>0 && !alreadyHarvested) {
+				if(i>0 /*&& !alreadyHarvested*/) {
 					
 					SpatialData from = segment.getSpatialData(i-1);
 					SpatialData to = pt;//just renaming current point for clairty
