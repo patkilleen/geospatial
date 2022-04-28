@@ -17,6 +17,136 @@ import junit.framework.Assert;
 
 class TestDataFusion {
 	private static final int NUM_TEST_ITERATION_FOR_THREAD_RACE_CONDITION_TEST=50;
+	
+	@Test
+	void testFuseDatasets_empty_neighborhoods() {
+		
+		
+		SpatialDataset lowResDS = new SpatialDataset(32);
+		//x, y, yield, speed
+
+		//group 1
+
+		lowResDS.addSpatialData(new SpatialData(1,new Point2D.Double(0,0),""));
+
+
+		//group 2
+		lowResDS.addSpatialData(new SpatialData(2,new Point2D.Double(50,100),"")); //super far away, no nearby points
+		
+		
+		
+		SpatialDataset highResDS = buildHighResTestDataset();
+
+		SpatialDataset res = DataFusion.fuseDatasets(SpatialData.COMMA,lowResDS, highResDS, SingleSummaryStatAggregator.SingleSummaryStat.MEAN, SpatialData.DistanceMetric.EUCLIDEAN, 2.5);
+		
+		
+		
+		Assert.assertEquals(1, res.size());
+
+
+		
+		SpatialData pt = res.getSpatialData(0);
+
+		double [] actual = pt.parseAttributesToDoubleArray(SpatialData.COMMA);
+		
+		Assert.assertEquals(1,pt.getId());
+							
+		Assert.assertEquals(104.5,actual[0],0.001);
+		Assert.assertEquals(4.575,actual[1],0.001);	
+		
+		
+		
+		
+		res = DataFusion.fuseDatasets(SpatialData.COMMA,lowResDS, highResDS, SingleSummaryStatAggregator.SingleSummaryStat.MEAN, SpatialData.DistanceMetric.INFINITY_NORM, 2.5);
+		
+		
+		pt = res.getSpatialData(0);
+
+		actual = pt.parseAttributesToDoubleArray(SpatialData.COMMA);
+		
+		Assert.assertEquals(1,pt.getId());
+							
+		Assert.assertEquals(104.5,actual[0],0.001);
+		Assert.assertEquals(4.575,actual[1],0.001);	
+		
+		
+
+	}
+	
+	@Test
+	void testFuseDatasets_empty_neighborhoods2() {
+		
+		
+		SpatialDataset lowResDS = new SpatialDataset(32);
+		//x, y, yield, speed
+
+		//group 1
+
+		lowResDS.addSpatialData(new SpatialData(1,new Point2D.Double(0,0),""));
+
+		//group 2
+		lowResDS.addSpatialData(new SpatialData(2,new Point2D.Double(8,6),""));
+		//group 3
+		lowResDS.addSpatialData(new SpatialData(3,new Point2D.Double(50,100),"")); //super far away, no nearby points
+		
+		
+		
+		SpatialDataset highResDS = buildHighResTestDataset();
+
+		SpatialDataset res = DataFusion.fuseDatasets(SpatialData.COMMA,lowResDS, highResDS, SingleSummaryStatAggregator.SingleSummaryStat.MEAN, SpatialData.DistanceMetric.EUCLIDEAN, 2.5);
+		
+		
+		Assert.assertEquals(2, res.size());
+
+
+		for(int i = 0; i < res.size();i++) {
+			SpatialData pt = res.getSpatialData(i);
+
+			double [] actual = pt.parseAttributesToDoubleArray(SpatialData.COMMA);
+			if(pt.getId() == 1) {								
+				Assert.assertEquals(104.5,actual[0],0.001);
+				Assert.assertEquals(4.575,actual[1],0.001);
+			}else if(pt.getId() == 2) {
+
+				Assert.assertEquals(125,actual[0],0.001);
+				Assert.assertEquals(3.0666667,actual[1],0.001);
+			}else if(pt.getId() == 3) {
+				fail("expected empty neghborhdood but had results");
+
+			}else {
+				fail("incorrect id of "+pt.getId());
+			}
+		}
+		
+		res = DataFusion.fuseDatasets(SpatialData.COMMA,lowResDS, highResDS, SingleSummaryStatAggregator.SingleSummaryStat.MEAN, SpatialData.DistanceMetric.INFINITY_NORM, 2.5);
+		
+		Assert.assertEquals(2, res.size());
+
+
+		for(int i = 0; i < res.size();i++) {
+			SpatialData pt = res.getSpatialData(i);
+
+			double [] actual = pt.parseAttributesToDoubleArray(SpatialData.COMMA);
+			if(pt.getId() == 1) {								
+				Assert.assertEquals(104.5,actual[0],0.001);
+				Assert.assertEquals(4.575,actual[1],0.001);
+			}else if(pt.getId() == 2) {
+
+				Assert.assertEquals(125,actual[0],0.001);
+				Assert.assertEquals(3.0666667,actual[1],0.001);
+			}else if(pt.getId() == 3) {
+				fail("expected empty neghborhdood but had results");
+
+			}else {
+				fail("incorrect id of "+pt.getId());
+			}
+		}
+		
+
+	}
+
+	
+	
 	@Test
 	void testFuseDatasets_basic() {
 		SpatialDataset lowResDS = buildLowResTestDataset();
