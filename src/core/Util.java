@@ -2,6 +2,10 @@ package core;
 
 import java.awt.geom.Point2D;
 
+import org.apache.lucene.spatial.util.GeoDistanceUtils;
+
+import data_structure.SpatialData;
+
 public class Util {
 
 	public Util() {
@@ -58,6 +62,47 @@ public class Util {
 		
 		
 	}
+	
+	public static double distanceTo(Point2D from,Point2D to,SpatialData.DistanceMetric distMe){
+		
+		if(to==null || from == null) {
+			throw new IllegalArgumentException("location was null when comparing point distances");
+		}
+		
+		double res = 0.0;
+		double deltaX=0;
+		double deltaY=0;
+		switch(distMe) {
+		
+			case EUCLIDEAN:
+				//euclidean distance
+				deltaY = from.getY()-to.getY();
+				deltaX = from.getX()-to.getX();
+				
+				res = Math.sqrt(deltaX*deltaX + deltaY*deltaY);
+				break;
+			case INFINITY_NORM:
+				//infinity norm distance (basically it acts like checking if a point inside a block instead of inside a spehere)
+				deltaY = Math.abs(from.getY()-to.getY());
+				deltaX =  Math.abs(from.getX()-to.getX());
+				
+				res = Math.max(deltaY, deltaX);
+				break;
+			case HAVERSIN:
+				//TODO: this call doesn't work since the library linking is having issues find binary class that implemtns the function
+				//probably i library referenceing issue. But skeleton of code is herre for when library issues fixed
+				res= GeoDistanceUtils.haversin(from.getY(), from.getX(),to.getY(), to.getX());
+				break;
+				
+			default:
+				throw new IllegalArgumentException("unknown distance metric"); 
+		}
+		
+		return res;
+		
+
+	}
+
 }
 	
 		

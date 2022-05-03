@@ -109,43 +109,8 @@ public class SpatialData implements Comparable<SpatialData>{
 	 * @return distance from this point to that point
 	 */
 	public double distanceTo(Point2D that,DistanceMetric distMe){
-		
-		if(that==null) {
-			throw new IllegalArgumentException("location was null when comparing point distances");
-		}
-		
-		double res = 0.0;
-		double deltaX=0;
-		double deltaY=0;
-		switch(distMe) {
-		
-			case EUCLIDEAN:
-				//euclidean distance
-				deltaY = this.getLocation().getY()-that.getY();
-				deltaX = this.getLocation().getX()-that.getX();
-				
-				res = Math.sqrt(deltaX*deltaX + deltaY*deltaY);
-				break;
-			case INFINITY_NORM:
-				//infinity norm distance (basically it acts like checking if a point inside a block instead of inside a spehere)
-				deltaY = Math.abs(this.getLocation().getY()-that.getY());
-				deltaX =  Math.abs(this.getLocation().getX()-that.getX());
-				
-				res = Math.max(deltaY, deltaX);
-				break;
-			case HAVERSIN:
-				//TODO: this call doesn't work since the library linking is having issues find binary class that implemtns the function
-				//probably i library referenceing issue. But skeleton of code is herre for when library issues fixed
-				res= GeoDistanceUtils.haversin(this.getLocation().getY(), this.getLocation().getX(),that.getY(), that.getX());
-				break;
-				
-			default:
-				throw new IllegalArgumentException("unknown distance metric"); 
-		}
-		
-		return res;
-		
-
+		return Util.distanceTo(this.getLocation(),that,distMe);
+	
 	}
 
 	
