@@ -1,5 +1,6 @@
 package data_structure;
 
+import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
@@ -11,7 +12,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
-import java.util.Iterator;
 
 import org.apache.commons.imaging.FormatCompliance;
 import org.apache.commons.imaging.ImageReadException;
@@ -32,7 +32,8 @@ import io.FileHandler;
 public class MyRaster {
 
 
-	private static final int NO_DATA_FILLER_VALUE_TAG_ID =0xa481; 
+	private static final int NO_DATA_FILLER_VALUE_TAG_ID =0xa481;
+	public static final double NO_PIXEL_VALUES = -9999.0;
 	private boolean loaded;
 	private boolean isRGBRaster;
 
@@ -350,7 +351,68 @@ public class MyRaster {
 
 
 	}
-
+	
+	/**
+	 * Computes the mean of pixel values inside a an area of the raster
+	 * @param center the center of the neighbordhood to compute the mean
+	 * @param radius radius around center to decide what pixels to be included
+	 * @param distMetric distance metric used to define neighborhodd shape
+	 * @return the mean of pixel values in neighborhood or -9999 if nieghborhood empty
+	 */
+	/*public double mean(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx) {
+		double mean = 0;
+		
+		int numPixelsInArea = 0;
+		//SpatialData.DistanceMetric.EUCLIDEAN
+		
+		boolean ignoringNODATAValues=false;
+		
+		//multispectral imagery?
+		if(!isRGBRaster) {
+			ignoringNODATAValues=true;			
+		}
+		
+		double cx = center.getX();
+		double cy = center.getY();
+		double xmin =cx - radius;
+		double xmax = cx + radius;
+		double ymin = cy - radius;
+		double ymax = cy+radius;
+		
+		//make sure the search area is limited to be insided the raster's extent
+		xmin = Math.max(xmin, boundingBox.getMinX());
+		ymin = Math.max(ymin, boundingBox.getMinY());
+		xmax = Math.min(xmax, boundingBox.getMaxX());
+		ymax = Math.min(ymax, boundingBox.getMaxY());
+		
+		
+		//we start at center of a pixel (hence the pixel scale /2), top left corner (maxy, min x)
+		for(double northing = ymax;northing>=ymin;northing-=yStep) {
+			for(double easting = xmin;easting<=xmax;easting+=xStep) {
+			
+		//for(double northing = ymin+ (r.pixelSpatialScaleY/2.0);northing<=ymax;northing+=yStep) {
+			//for(double easting = xmin+ (r.pixelSpatialScaleX/2.0);easting<=xmax;easting+=xStep) {
+				
+				float f = r.getPixelValue(easting, northing, bandIx);//index not used for MS data
+				if(r.isRGBRaster()) {
+					output = easting+" "+northing+" "+((int)f);
+				}else {
+					output = easting+" "+northing+" "+f;
+				}
+				
+				out.println(output);
+			}	
+		}
+				
+		//there weren't any pixels in neighborhood?
+		if(numPixelsInArea==0) {
+			mean=NO_PIXEL_VALUES;
+		}
+		
+		//iterate over every point inside this area, ignoring NO_DATA values
+		return mean;
+	}
+*/
 	public String toString() {
 		String res = "width: "+width+"\n";
 		res += "height: "+height+"\n";
@@ -372,13 +434,25 @@ public class MyRaster {
 		String rasterInfoRScriptPath = args[1];
 		String inputTiffFile=args[2];
 		String outputCSV = args[3];
-		
-		rasterToCSV(rExecutablePath,rasterInfoRScriptPath,inputTiffFile,outputCSV);
+		int bandIx = Integer.parseInt(args[4]);
+		rasterToCSV(rExecutablePath,rasterInfoRScriptPath,inputTiffFile,outputCSV,bandIx);
 	
 		
 	}
 	
-	public static void rasterToCSV(String rExecutablePath, String rasterInfoRScriptPath, String inputTiffFile, String outputCSV) throws ImageReadException, IOException {
+	
+	/**
+	 * Reads a raster file and converts it to CSV (note that the output file will be approx. 40 times larger than 
+	 * the Raster since 2 coordinates will be stored for each pixel)
+	 * @param rExecutablePath path to R Cran programming executable. E.g.: "/home/user/R/bin/Rscript.exe
+	 * @param rasterInfoRScriptPath path to the R script that will summarize the raster's info: <project root>/r/raster-info.r
+	 * @param inputTiffFile path to GeoTIFF raster file to convert to CSV
+	 * @param outputCSV output CSV file path
+	 * @param bandIx the band index to include in the CSV file (ignored for multispectral data that store data in floating point format). For RGB 0= red, 1 = green, 2 = blue. 
+	 * @throws ImageReadException
+	 * @throws IOException
+	 */
+	public static void rasterToCSV(String rExecutablePath, String rasterInfoRScriptPath, String inputTiffFile, String outputCSV, int bandIx) throws ImageReadException, IOException {
 		MyRaster r = new MyRaster();
 		r.load(rExecutablePath,rasterInfoRScriptPath,inputTiffFile);
 		
@@ -392,7 +466,7 @@ public class MyRaster {
 		double ymax = r.boundingBox.getMaxY();
 		
 		double xStep = r.pixelSpatialScaleX;
-		double yStep = r.pixelSpatialScaleX;
+		double yStep = r.pixelSpatialScaleY;
 		
 		
 		//at this point the user decided to delete output file or were safely creating a new one
@@ -413,7 +487,7 @@ public class MyRaster {
 		//for(double northing = ymin+ (r.pixelSpatialScaleY/2.0);northing<=ymax;northing+=yStep) {
 			//for(double easting = xmin+ (r.pixelSpatialScaleX/2.0);easting<=xmax;easting+=xStep) {
 				
-				float f = r.getPixelValue(easting, northing, 2);//index not used for MS data
+				float f = r.getPixelValue(easting, northing, bandIx);//index not used for MS data
 				if(r.isRGBRaster()) {
 					output = easting+" "+northing+" "+((int)f);
 				}else {
