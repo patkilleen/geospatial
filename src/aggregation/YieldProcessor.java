@@ -13,6 +13,9 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.imaging.ImageReadException;
+
+import data_structure.MyRaster;
 import data_structure.Polygon2D;
 import data_structure.SpatialData;
 import data_structure.SpatialDataIndex;
@@ -42,7 +45,7 @@ public class YieldProcessor {
 
 
 	//args:[input csv, output csv, degrees epsilon, window size]
-	public static void main(String [] args) throws IOException {
+	public static void main(String [] args) throws IOException, ImageReadException {
 
 		String operation = args[0];
 
@@ -375,9 +378,67 @@ public class YieldProcessor {
 			
 		
 		
-	}
+	}else if(operation.equals("-imagery-fusion")) {//fuse yield with GeoTIFF imagery
+		
+		String inputCSV =args[1];
+		String outputCSV = args[2];
+		String inputGeotiff =args[3];
+		String imageryColName =args[4];//anem of imagery column
+		int bandIx =Integer.parseInt(args[5]);
+		double radius =Double.parseDouble(args[6]);		
+		SpatialData.DistanceMetric distMetric =SpatialData.DistanceMetric.valueOf(args[7]);
+		String aggOppStr =args[8];
+		String rExecutablePath=args[9];
+		String rasterInfoRScriptPath = args[10];
+		
+		String sep = ",";
+		
+		System.out.println("reading yield data: "+inputCSV);
+		
+		SpatialDataset inputDataset = FileHandler.readCSVIntoSpatialDataset(inputCSV,null,sep);
+		
+		
+		String inputCSVHeader = FileHandler.readCSVHeader(inputCSV);
+
+		MyRaster r = new MyRaster();
+		System.out.println("reading raster: "+inputGeotiff);
+		r.load(rExecutablePath, rasterInfoRScriptPath, inputGeotiff);
+		
+		Iterator<SpatialData> it = inputDataset.iterator();
+		
+		int aggOpp=-1;
+		if(aggOppStr.equals("max")) {
+			aggOpp=MyRaster.MAX_AGG;
+		}else if(aggOppStr.equals("min")) {
+			aggOpp=MyRaster.MIN_AGG;
+		}else if(aggOppStr.equals("mean")) {
+			aggOpp=MyRaster.MEAN_AGG;
+		}else {
+			System.out.println("unsupported aggregation opperator :"+aggOppStr);
+			System.exit(-1);
+		}
+		
+		System.out.println("fusiong yield data and imagery ");
+		while(it.hasNext()) {
+			SpatialData pt = it.next();
+			Point2D coord = pt.getLocation();
+			
+			
+			//perform aggregation around point 
+			double aggRes = r. _aggregate(coord,radius,distMetric,bandIx,aggOpp);
+			
+			//append result to point
+			String attributes = pt.getAttributes();
+			attributes= attributes+sep + aggRes;
+			pt.setAttributes(attributes);
+			
+		}
+		System.out.println("writing fusion results to "+outputCSV);
+		FileHandler.writeSpatialDatasetToFile(outputCSV,inputCSVHeader+","+imageryColName, inputDataset,true,",",false);
 		
 
+		
+	}
 		System.exit(0);
 	}
 

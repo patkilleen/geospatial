@@ -22,6 +22,7 @@ import org.apache.commons.imaging.formats.tiff.TiffField;
 import org.apache.commons.imaging.formats.tiff.TiffRasterData;
 import org.apache.commons.imaging.formats.tiff.TiffReader;
 
+import core.Util;
 import io.FileHandler;
 
 /**
@@ -34,6 +35,10 @@ public class MyRaster {
 
 	private static final int NO_DATA_FILLER_VALUE_TAG_ID =0xa481;
 	public static final double NO_PIXEL_VALUES = -9999.0;
+	
+	public static final int MEAN_AGG=0;
+	public static final int MAX_AGG=1;
+	public static final int MIN_AGG=2;
 	private boolean loaded;
 	private boolean isRGBRaster;
 
@@ -61,6 +66,34 @@ public class MyRaster {
 
 
 	}
+
+	public Rectangle2D getBoundingBox() {
+		return boundingBox;
+	}
+
+	
+
+	public double getPixelSpatialScaleX() {
+		return pixelSpatialScaleX;
+	}
+
+
+	public double getPixelSpatialScaleY() {
+		return pixelSpatialScaleY;
+	}
+
+
+
+	public int getHeight() {
+		return height;
+	}
+
+	
+
+	public int getWidth() {
+		return width;
+	}
+
 
 	public void load(String rExecutablePath, String rasterInfoRScriptPath, String inputTiffFile) throws IOException, ImageReadException {
 		if(inputTiffFile==null) {
@@ -128,10 +161,11 @@ public class MyRaster {
 	 */
 	public float getPixelValue(double easting, double northing, int bandIx) {
 
-		if(!boundingBox.contains(easting, northing)) {
+		//if(!boundingBox.contains(easting, northing)) { avoid using "contains" since some boundary cases are considered not in image
+		if(easting < boundingBox.getMinX() || easting > boundingBox.getMaxX() || northing < boundingBox.getMinY() || northing > boundingBox.getMaxY()) {
 			throw new IndexOutOfBoundsException("the coordinates are outsude the bounding box. Cannot get pixel");
 		}
-		//note that the top left corner of an image is index (0,0), and as you increase y you go south
+		//note that the top left corner of an image is index (0,0), and as you increase y you go south (so norting decreases)
 		int x = (int) Math.floor((easting-boundingBox.getMinX())/pixelSpatialScaleX);
 		
 
@@ -352,17 +386,101 @@ public class MyRaster {
 
 	}
 	
+	
+	public Rectangle2D adjustAreaToPointCenters(Rectangle2D rec) {
+		
+		
+		
+		
+		
+		double xmin = rec.getMinX();
+		double xmax = rec.getMaxX();
+		double ymin = rec.getMinY();
+		double ymax = rec.getMaxY();
+		return adjustAreaToPointCenters(xmin,xmax,ymin,ymax);
+		
+	}
+	public Rectangle2D adjustAreaToPointCenters(double xmin,double xmax,double ymin,double ymax) {		
+		double halfXPixelWidth = pixelSpatialScaleX/2.0;
+		double halfYPixelWidth = pixelSpatialScaleY/2.0;
+		
+		
+		double ptCenterLeftLimit=boundingBox.getMinX()+halfXPixelWidth;
+		double ptCenterRightLimit= boundingBox.getMaxX()-halfXPixelWidth;
+		double ptCenterBottomLimit=boundingBox.getMinY()+halfYPixelWidth;
+		double ptCenterUpperLimit=boundingBox.getMaxY()-halfYPixelWidth;
+		
+		//make sure the  area is limited to be insided the raster's extent
+		xmin = Math.max(xmin,ptCenterLeftLimit );		
+		xmax = Math.min(xmax,ptCenterRightLimit);
+		ymin = Math.max(ymin, ptCenterBottomLimit);
+		ymax = Math.min(ymax,ptCenterUpperLimit );
+
+		
+		
+		int pixelCount = (int) Math.ceil((xmin-ptCenterLeftLimit)/pixelSpatialScaleX);
+		xmin = ptCenterLeftLimit + (pixelCount*pixelSpatialScaleX);
+		
+		pixelCount = (int) Math.floor((xmax-ptCenterLeftLimit)/pixelSpatialScaleX);
+		xmax = ptCenterLeftLimit + (pixelCount*pixelSpatialScaleX);
+		
+		
+		pixelCount = (int) Math.ceil((ymin-ptCenterBottomLimit)/pixelSpatialScaleY);
+		ymin = ptCenterBottomLimit + (pixelCount*pixelSpatialScaleY);
+		
+		pixelCount = (int) Math.floor((ymax-ptCenterBottomLimit)/pixelSpatialScaleY);
+		ymax = ptCenterBottomLimit + (pixelCount*pixelSpatialScaleY);
+		
+		return new Rectangle2D.Double(xmin,ymin,xmax-xmin,ymax-ymin);
+	}
+	
 	/**
 	 * Computes the mean of pixel values inside a an area of the raster
 	 * @param center the center of the neighbordhood to compute the mean
 	 * @param radius radius around center to decide what pixels to be included
 	 * @param distMetric distance metric used to define neighborhodd shape
+	 * @param bandIx the band index to use in mean (ignored for multispectral data that store data in floating point format). For RGB 0= red, 1 = green, 2 = blue.
 	 * @return the mean of pixel values in neighborhood or -9999 if nieghborhood empty
 	 */
-	/*public double mean(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx) {
-		double mean = 0;
+	public double mean(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx) {
+		return _aggregate(center,radius,distMetric,bandIx,MEAN_AGG);
+	}
+	/**
+	 * Computes the max of pixel values inside a an area of the raster
+	 * @param center the center of the neighbordhood to compute the max
+	 * @param radius radius around center to decide what pixels to be included
+	 * @param distMetric distance metric used to define neighborhodd shape
+	 * @param bandIx the band index to use in max (ignored for multispectral data that store data in floating point format). For RGB 0= red, 1 = green, 2 = blue.
+	 * @return the max of pixel values in neighborhood or -9999 if nieghborhood empty
+	 */
+	public double max(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx) {
+		return _aggregate(center,radius,distMetric,bandIx,MAX_AGG);
+	}
+	
+	/**
+	 * Computes the min of pixel values inside a an area of the raster
+	 * @param center the center of the neighbordhood to compute the min
+	 * @param radius radius around center to decide what pixels to be included
+	 * @param distMetric distance metric used to define neighborhodd shape
+	 * @param bandIx the band index to use in min (ignored for multispectral data that store data in floating point format). For RGB 0= red, 1 = green, 2 = blue.
+	 * @return the min of pixel values in neighborhood or -9999 if nieghborhood empty
+	 */
+	public double min(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx) {
+		return _aggregate(center,radius,distMetric,bandIx,MIN_AGG);
+	}
+	
+	
+	//A Pixel is considered inside a neigyborhodd if it's center is whitin the radius
+	public double _aggregate(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx, int aggOp) {
+		double aggRes = 0;
 		
 		int numPixelsInArea = 0;
+		
+		if (aggOp == MAX_AGG) {
+			aggRes=Float.MIN_VALUE;
+		}else if (aggOp == MIN_AGG) {
+			aggRes=Double.MAX_VALUE;
+		} 
 		//SpatialData.DistanceMetric.EUCLIDEAN
 		
 		boolean ignoringNODATAValues=false;
@@ -379,40 +497,84 @@ public class MyRaster {
 		double ymin = cy - radius;
 		double ymax = cy+radius;
 		
-		//make sure the search area is limited to be insided the raster's extent
-		xmin = Math.max(xmin, boundingBox.getMinX());
-		ymin = Math.max(ymin, boundingBox.getMinY());
-		xmax = Math.min(xmax, boundingBox.getMaxX());
-		ymax = Math.min(ymax, boundingBox.getMaxY());
+		Rectangle2D boundingSearchRec =adjustAreaToPointCenters(xmin,xmax,ymin,ymax);
 		
+		xmin = boundingSearchRec.getMinX();
+		xmax=boundingSearchRec.getMaxX();
+		ymin = boundingSearchRec.getMinY();
+		ymax = boundingSearchRec.getMaxY();
 		
-		//we start at center of a pixel (hence the pixel scale /2), top left corner (maxy, min x)
-		for(double northing = ymax;northing>=ymin;northing-=yStep) {
-			for(double easting = xmin;easting<=xmax;easting+=xStep) {
-			
-		//for(double northing = ymin+ (r.pixelSpatialScaleY/2.0);northing<=ymax;northing+=yStep) {
-			//for(double easting = xmin+ (r.pixelSpatialScaleX/2.0);easting<=xmax;easting+=xStep) {
+				 
+		
+		Point2D pt = new Point2D.Double(0,0);
+		//iterate over every point inside this area, ignoring NO_DATA values
+		//we start at top left corner of area (maxy, min x)
+		for(double northing = ymax;northing>=ymin;northing-=pixelSpatialScaleY) {
+			for(double easting = xmin;easting<=xmax;easting+=pixelSpatialScaleX) {
 				
-				float f = r.getPixelValue(easting, northing, bandIx);//index not used for MS data
-				if(r.isRGBRaster()) {
-					output = easting+" "+northing+" "+((int)f);
+				
+				boolean insideNeighborhoodFlag = false;
+				if(distMetric == SpatialData.DistanceMetric.INFINITY_NORM) {
+					insideNeighborhoodFlag=true;//by definition, the bounding box is the nieghborhood
 				}else {
-					output = easting+" "+northing+" "+f;
+					//check if point inside neighborhood					
+					pt.setLocation(easting,northing);
+					double dist = Util.distanceTo(center, pt, distMetric);
+					
+					//anything withing the radius around center is considered a neighbor
+					insideNeighborhoodFlag =dist <= radius;
+					 
 				}
 				
-				out.println(output);
+				//do we include pixel value in mean
+				if(insideNeighborhoodFlag) {
+					float f = getPixelValue(easting, northing, bandIx);
+					
+					//we ignoreing missing values?
+					if(ignoringNODATAValues) {
+						if(f == missingDataFillerValue) {
+							continue;//a NO_DATA value, skip to next pixel
+						}
+					}
+					numPixelsInArea++;
+					
+					if(aggOp ==MEAN_AGG) {
+						aggRes += f;
+					}else if(aggOp ==MAX_AGG) {
+						
+						//found bigger pixel value?
+						if(f>aggRes) {
+							aggRes = f;	
+						}
+					}else if(aggOp ==MIN_AGG) {
+						
+						//found smaller pixel value?
+						if(f<aggRes) {
+							aggRes = f;	
+						}
+					}
+				}
+				
+				
 			}	
 		}
 				
 		//there weren't any pixels in neighborhood?
 		if(numPixelsInArea==0) {
-			mean=NO_PIXEL_VALUES;
+			aggRes=NO_PIXEL_VALUES;
+		}else {
+			
+			//apply final step to aggregation
+			if(aggOp ==MEAN_AGG) {
+				aggRes = aggRes/((double)numPixelsInArea);
+			}
+			//nothing to do for min and max,  final result already stored in aggRes
 		}
 		
-		//iterate over every point inside this area, ignoring NO_DATA values
-		return mean;
+
+		return aggRes;
 	}
-*/
+
 	public String toString() {
 		String res = "width: "+width+"\n";
 		res += "height: "+height+"\n";
@@ -479,6 +641,7 @@ public class MyRaster {
 			PrintWriter out = new PrintWriter(bw))
 	{
 		
+		out.println("X,Y,band_"+bandIx);
 		String output;
 		//we start at center of a pixel (hence the pixel scale /2), top left corner (maxy, min x)
 		for(double northing = ymax- (r.pixelSpatialScaleY/2.0);northing>=ymin;northing-=yStep) {
@@ -489,9 +652,9 @@ public class MyRaster {
 				
 				float f = r.getPixelValue(easting, northing, bandIx);//index not used for MS data
 				if(r.isRGBRaster()) {
-					output = easting+" "+northing+" "+((int)f);
+					output = easting+","+northing+","+((int)f);
 				}else {
-					output = easting+" "+northing+" "+f;
+					output = easting+","+northing+","+f;
 				}
 				
 				out.println(output);
