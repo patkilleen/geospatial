@@ -1,0 +1,6 @@
+#exclude everyting except source and library folder
+/.settings
+/bin
+/data
+/.classpath
+/.project
