@@ -288,6 +288,7 @@ public class MyRaster {
 
 
 		TiffReader tiffReader = new TiffReader(true);
+		//MyTiffReader tiffReader = new MyTiffReader(true);
 
 		// read the tiff directory data
 		TiffContents contents = tiffReader.readDirectories(byteSource,true,FormatCompliance.getDefault());

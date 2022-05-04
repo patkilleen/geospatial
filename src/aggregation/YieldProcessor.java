@@ -383,13 +383,12 @@ public class YieldProcessor {
 		String inputCSV =args[1];
 		String outputCSV = args[2];
 		String inputGeotiff =args[3];
-		String imageryColName =args[4];//anem of imagery column
-		int bandIx =Integer.parseInt(args[5]);
-		double radius =Double.parseDouble(args[6]);		
-		SpatialData.DistanceMetric distMetric =SpatialData.DistanceMetric.valueOf(args[7]);
-		String aggOppStr =args[8];
-		String rExecutablePath=args[9];
-		String rasterInfoRScriptPath = args[10];
+		String imageryColName =args[4];//only required for MS data as we don't know what band it is. name of bnad column		
+		double radius =Double.parseDouble(args[5]);		
+		SpatialData.DistanceMetric distMetric =SpatialData.DistanceMetric.valueOf(args[6]);
+		//String aggOppStr =args[7];
+		String rExecutablePath=args[7];
+		String rasterInfoRScriptPath = args[8];
 		
 		String sep = ",";
 		
@@ -406,8 +405,11 @@ public class YieldProcessor {
 		
 		Iterator<SpatialData> it = inputDataset.iterator();
 		
-		int aggOpp=-1;
-		if(aggOppStr.equals("max")) {
+		//int aggOpp=-1;
+		
+		int [] aggOperators = {MyRaster.MEAN_AGG,MyRaster.MAX_AGG,MyRaster.MIN_AGG};
+		String [] aggOperatorNames = {"mean","max","min"};
+		/*if(aggOppStr.equals("max")) {
 			aggOpp=MyRaster.MAX_AGG;
 		}else if(aggOppStr.equals("min")) {
 			aggOpp=MyRaster.MIN_AGG;
@@ -416,25 +418,66 @@ public class YieldProcessor {
 		}else {
 			System.out.println("unsupported aggregation opperator :"+aggOppStr);
 			System.exit(-1);
+		}*/
+		
+		int bandFromIx=0;
+		int bandToIx=0;
+		
+		if(r.isRGBRaster()) {
+			bandFromIx=0;
+			bandToIx=2;
 		}
 		
+		//do we have many bands to process?
+		/*if(bandIxStr.contains("-")) {
+			 int dashIx = bandIxStr.indexOf('-');
+			 bandFromIx = Integer.parseInt(bandIxStr.substring(0, dashIx));
+			 bandToIx = Integer.parseInt(bandIxStr.substring(dashIx+1,bandIxStr.length()));
+		}else {
+			bandFromIx=bandToIx=Integer.parseInt(bandIxStr);
+		}*/
+		
 		System.out.println("fusiong yield data and imagery ");
+		
+		
 		while(it.hasNext()) {
 			SpatialData pt = it.next();
 			Point2D coord = pt.getLocation();
 			
 			
-			//perform aggregation around point 
-			double aggRes = r. _aggregate(coord,radius,distMetric,bandIx,aggOpp);
 			
 			//append result to point
 			String attributes = pt.getAttributes();
-			attributes= attributes+sep + aggRes;
+			
+			//do all the aggregations
+			for(int aggOp : aggOperators) {
+				//perform aggregation for each desired band
+				for(int i = bandFromIx;i<=bandToIx;i++) {
+					//perform aggregation around point 
+					double aggRes = r. _aggregate(coord,radius,distMetric,i,aggOp);
+					
+					attributes= attributes+sep + aggRes;
+				}
+			}
+			
 			pt.setAttributes(attributes);
 			
+		
 		}
+		
+		String header = inputCSVHeader;
+		
+		for(String aggOpName : aggOperatorNames) {
+			header = header+",";
+			if(r.isMSRaster()) {
+				header = header + "MS_" + imageryColName + "_"+aggOpName;
+			}else {
+				header = header + "RGB_Red_"+aggOpName+","+ "RGB_Green_"+aggOpName+","+ "RGB_Blue_"+aggOpName;
+			}
+		}
+		
 		System.out.println("writing fusion results to "+outputCSV);
-		FileHandler.writeSpatialDatasetToFile(outputCSV,inputCSVHeader+","+imageryColName, inputDataset,true,",",false);
+		FileHandler.writeSpatialDatasetToFile(outputCSV,header, inputDataset,true,",",false);
 		
 
 		
