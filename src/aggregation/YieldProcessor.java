@@ -5,6 +5,7 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -389,6 +390,7 @@ public class YieldProcessor {
 		//String aggOppStr =args[7];
 		String rExecutablePath=args[7];
 		String rasterInfoRScriptPath = args[8];
+		String fieldBoundaryPath = args[9];
 		
 		String sep = ",";
 		
@@ -399,9 +401,18 @@ public class YieldProcessor {
 		
 		String inputCSVHeader = FileHandler.readCSVHeader(inputCSV);
 
-		MyRaster r = new MyRaster();
+		//read boundary file
+		SpatialDataset boundaryPts = FileHandler.readCSVIntoSpatialDataset(fieldBoundaryPath, null, sep);
+		
+		//convert field boundary to polygon 2d (used to avoid including raster pixels outside the field)
+		Polygon2D fieldBoundaryPoly =boundaryPts.toPolygon2D();
+
+		
+		MyRaster r = new MyRaster(fieldBoundaryPoly);
 		System.out.println("reading raster: "+inputGeotiff);
 		r.load(rExecutablePath, rasterInfoRScriptPath, inputGeotiff);
+		
+		
 		
 		Iterator<SpatialData> it = inputDataset.iterator();
 		
@@ -439,7 +450,7 @@ public class YieldProcessor {
 		
 		System.out.println("fusiong yield data and imagery ");
 		
-		
+		Rectangle2D preAllocatedRect = new Rectangle2D.Double(); 
 		while(it.hasNext()) {
 			SpatialData pt = it.next();
 			Point2D coord = pt.getLocation();
@@ -454,7 +465,7 @@ public class YieldProcessor {
 				//perform aggregation for each desired band
 				for(int i = bandFromIx;i<=bandToIx;i++) {
 					//perform aggregation around point 
-					double aggRes = r. _aggregate(coord,radius,distMetric,i,aggOp);
+					double aggRes = r. _aggregate(coord,radius,distMetric,i,aggOp,preAllocatedRect);
 					
 					attributes= attributes+sep + aggRes;
 				}

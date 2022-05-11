@@ -368,4 +368,37 @@ public class SpatialDataset {
 		}		
 		
 	}
+	
+	/**
+	 * Converts this spatial dataset into a Polygon2D where each vertex is point in the dataset 
+	 * and vertices are connected by edges by the  order the points are found in the dataset
+	 * 
+	 * 
+	 * The last point in the dataset does not necessarily need to close the polygon's path.
+	 * 
+	 * Note that some precision in the coordinates may be lost as floating point
+	 * coordinates are used.
+	 * @return A polygon2D or <code>null</code> when the dataset is empty
+	 */
+	public Polygon2D toPolygon2D() {
+		
+		//empty dataset
+		if(this.size()==0) {
+			return null;
+		}
+		
+		Iterator<SpatialData> it = this.iterator();
+		
+		Polygon2D res = new Polygon2D();
+		
+		while(it.hasNext()) {
+			SpatialData data = it.next();
+			Point2D pt = data.getLocation();
+			
+			res.addPoint(pt);
+		}
+		
+		return res;
+		
+	}
 }

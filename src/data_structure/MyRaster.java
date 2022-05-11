@@ -57,16 +57,44 @@ public class MyRaster {
 
 	Raster r = null;//used to store RGB raster data
 	TiffRasterData rasterData=null;//used to store MS raster data
+	
+	boolean [][] pixelInsideBoundaryFlags;
+	
+	Polygon2D pixelBoundary;
 	/**
 	 * creates a raster object from a file path to a geotiff. 
 	 * Avoids reading anything into memory until other API functions are called
-	 * @param inputTiffFile
+	 * @param pixelBoundary pixel boundary that limits which pixels to process in raster aggregations. No pixel will be included in the aggregation that is outside this boundary.
 	 */
-	public MyRaster() {
+	public MyRaster(Polygon2D pixelBoundary) {
 
+		this.pixelBoundary = pixelBoundary;
+		loaded=false;
+	}
+	
+	/**
+	 * creates a raster object from a file path to a geotiff. 
+	 * Avoids reading anything into memory until other API functions are called
+	 */
+	public MyRaster( ) {
+		loaded=false;
 
 	}
+	
 
+	public Polygon2D getPixelBoundary() {
+		return pixelBoundary;
+	}
+
+	/**
+	 * @param pixelBoundary pixel boundary that limits which pixels to process in raster aggregations. No pixel will be included in the aggregation that is outside this boundary.
+	 * 
+	 */
+	public void setPixelBoundary(Polygon2D pixelBoundary) {
+		this.pixelBoundary = pixelBoundary;
+	}
+
+	
 	public Rectangle2D getBoundingBox() {
 		return boundingBox;
 	}
@@ -139,7 +167,7 @@ public class MyRaster {
 			}
 
 		}
-
+		
 		float f;
 		if(!isRGBRaster) {
 			f = rasterData.getValue(x, y);
@@ -166,12 +194,18 @@ public class MyRaster {
 			throw new IndexOutOfBoundsException("the coordinates are outsude the bounding box. Cannot get pixel");
 		}
 		//note that the top left corner of an image is index (0,0), and as you increase y you go south (so norting decreases)
-		int x = (int) Math.floor((easting-boundingBox.getMinX())/pixelSpatialScaleX);
-		
-
-		int y = (int) Math.floor((boundingBox.getMaxY()-northing)/pixelSpatialScaleY);
+		int x = eastingToXIndex(easting);		
+		int y = northingToYIndex(northing);
 
 		return getPixelValue(x,y,bandIx);
+	}
+	
+	private int eastingToXIndex(double easting){
+		 return (int) Math.floor((easting-boundingBox.getMinX())/pixelSpatialScaleX);	
+	}
+	
+	private int northingToYIndex(double northing){
+		 return  (int) Math.floor((boundingBox.getMaxY()-northing)/pixelSpatialScaleY);	
 	}
 
 
@@ -269,6 +303,8 @@ public class MyRaster {
 
 
 		boundingBox = new Rectangle2D.Double(xmin, ymin, xmax - xmin, ymax - ymin);
+		
+		loadPixelInsideBoundaryMatrix();
 
 	}
 
@@ -288,7 +324,6 @@ public class MyRaster {
 
 
 		TiffReader tiffReader = new TiffReader(true);
-		//MyTiffReader tiffReader = new MyTiffReader(true);
 
 		// read the tiff directory data
 		TiffContents contents = tiffReader.readDirectories(byteSource,true,FormatCompliance.getDefault());
@@ -387,8 +422,33 @@ public class MyRaster {
 
 	}
 	
-	
-	public Rectangle2D adjustAreaToPointCenters(Rectangle2D rec) {
+	/**
+	 * Convert a given bounding rectangle to a result rectangle that makes
+	 * iterating over the pixel center coordinates more straight forward.
+	 * The the dimension of the result rectangle specifies the minimum and maximum
+	 * X/easting and Y/northing coordinates representing pixel centers
+	 * 
+	 * 
+	 * For example, to iterate over all pixel-center locations inside a bounding box
+	 * the following for loop can be used using the dimensions of the resulting rectangle
+	 * <code>
+	 	for(double northing = ymax;northing>=ymin;northing-=pixelSpatialScaleY) {
+			for(double easting = xmin;easting<=xmax;easting+=pixelSpatialScaleX) {
+			//process each pixel-center coordiate here as (easting,northing)
+			}
+		}
+
+	 * </code>
+	 * 
+	 * 
+	 * @param xmin
+	 * @param xmax
+	 * @param ymin
+	 * @param ymax
+	 * @param boundingSearchRecBuffer an optional pre-allocated Rectangle2D object used to store internal boundary computations and save memory allocations
+	 * @return
+	 */
+	public Rectangle2D adjustAreaToPointCenters(Rectangle2D rec,Rectangle2D boundingSearchRecBuffer) {
 		
 		
 		
@@ -398,10 +458,36 @@ public class MyRaster {
 		double xmax = rec.getMaxX();
 		double ymin = rec.getMinY();
 		double ymax = rec.getMaxY();
-		return adjustAreaToPointCenters(xmin,xmax,ymin,ymax);
+		return adjustAreaToPointCenters(xmin,xmax,ymin,ymax,boundingSearchRecBuffer);
 		
 	}
-	public Rectangle2D adjustAreaToPointCenters(double xmin,double xmax,double ymin,double ymax) {		
+	/**
+	 * Convert a given bounding rectangle to a result rectangle that makes
+	 * iterating over the pixel center coordinates more straight forward.
+	 * The the dimension of the result rectangle specifies the minimum and maximum
+	 * X/easting and Y/northing coordinates representing pixel centers
+	 * 
+	 * 
+	 * For example, to iterate over all pixel-center locations inside a bounding box
+	 * the following for loop can be used using the dimensions of the resulting rectangle
+	 * <code>
+	 	for(double northing = ymax;northing>=ymin;northing-=pixelSpatialScaleY) {
+			for(double easting = xmin;easting<=xmax;easting+=pixelSpatialScaleX) {
+			//process each pixel-center coordiate here as (easting,northing)
+			}
+		}
+
+	 * </code>
+	 * 
+	 * 
+	 * @param xmin
+	 * @param xmax
+	 * @param ymin
+	 * @param ymax
+	 * @param boundingSearchRecBuffer an optional pre-allocated Rectangle2D object used to store internal boundary computations and save memory allocations
+	 * @return
+	 */
+	public Rectangle2D adjustAreaToPointCenters(double xmin,double xmax,double ymin,double ymax,Rectangle2D boundingSearchRecBuffer) {		
 		double halfXPixelWidth = pixelSpatialScaleX/2.0;
 		double halfYPixelWidth = pixelSpatialScaleY/2.0;
 		
@@ -432,47 +518,74 @@ public class MyRaster {
 		pixelCount = (int) Math.floor((ymax-ptCenterBottomLimit)/pixelSpatialScaleY);
 		ymax = ptCenterBottomLimit + (pixelCount*pixelSpatialScaleY);
 		
-		return new Rectangle2D.Double(xmin,ymin,xmax-xmin,ymax-ymin);
+		
+		//no pre-allocated rectange2d
+		if(boundingSearchRecBuffer == null) {
+			return new Rectangle2D.Double(xmin,ymin,xmax-xmin,ymax-ymin);
+		}else {
+			boundingSearchRecBuffer.setFrame(xmin, ymin, xmax-xmin,ymax-ymin);
+			return boundingSearchRecBuffer;
+		}
 	}
 	
 	/**
-	 * Computes the mean of pixel values inside a an area of the raster
+	 * Computes the mean value of pixels who's location (pixel center) fall within a radius around a point center.
 	 * @param center the center of the neighbordhood to compute the mean
 	 * @param radius radius around center to decide what pixels to be included
 	 * @param distMetric distance metric used to define neighborhodd shape
 	 * @param bandIx the band index to use in mean (ignored for multispectral data that store data in floating point format). For RGB 0= red, 1 = green, 2 = blue.
+	 * @param boundingSearchRecBuffer an optional pre-allocated Rectangle2D object used to store internal boundary computations and save memory allocations
 	 * @return the mean of pixel values in neighborhood or -9999 if nieghborhood empty
 	 */
-	public double mean(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx) {
-		return _aggregate(center,radius,distMetric,bandIx,MEAN_AGG);
+	public double mean(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx,Rectangle2D boundingSearchRecBuffer) {
+		return _aggregate(center,radius,distMetric,bandIx,MEAN_AGG,boundingSearchRecBuffer);
 	}
 	/**
-	 * Computes the max of pixel values inside a an area of the raster
+	 * Computes the max value of pixels who's location (pixel center) fall within a radius around a point center.
 	 * @param center the center of the neighbordhood to compute the max
 	 * @param radius radius around center to decide what pixels to be included
 	 * @param distMetric distance metric used to define neighborhodd shape
 	 * @param bandIx the band index to use in max (ignored for multispectral data that store data in floating point format). For RGB 0= red, 1 = green, 2 = blue.
+	 * @param boundingSearchRecBuffer an optional pre-allocated Rectangle2D object used to store internal boundary computations and save memory allocations
 	 * @return the max of pixel values in neighborhood or -9999 if nieghborhood empty
 	 */
-	public double max(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx) {
-		return _aggregate(center,radius,distMetric,bandIx,MAX_AGG);
+	public double max(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx,Rectangle2D boundingSearchRecBuffer) {
+		return _aggregate(center,radius,distMetric,bandIx,MAX_AGG,boundingSearchRecBuffer);
 	}
 	
 	/**
-	 * Computes the min of pixel values inside a an area of the raster
+	 * Computes the min value of pixels who's location (pixel center) fall within a radius around a point center.
 	 * @param center the center of the neighbordhood to compute the min
 	 * @param radius radius around center to decide what pixels to be included
 	 * @param distMetric distance metric used to define neighborhodd shape
 	 * @param bandIx the band index to use in min (ignored for multispectral data that store data in floating point format). For RGB 0= red, 1 = green, 2 = blue.
+	 * @param boundingSearchRecBuffer an optional pre-allocated Rectangle2D object used to store internal boundary computations and save memory allocations
 	 * @return the min of pixel values in neighborhood or -9999 if nieghborhood empty
 	 */
-	public double min(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx) {
-		return _aggregate(center,radius,distMetric,bandIx,MIN_AGG);
+	public double min(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx,Rectangle2D boundingSearchRecBuffer) {
+		return _aggregate(center,radius,distMetric,bandIx,MIN_AGG,boundingSearchRecBuffer);
 	}
 	
 	
-	//A Pixel is considered inside a neigyborhodd if it's center is whitin the radius
-	public double _aggregate(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx, int aggOp) {
+	/**
+	 * Computes an aggregation value of pixels who's location (pixel center) fall within a radius around a point center.
+	 * Pixels outside a given sub-area of the raster are not considered (e.g., outside the boundaries of a farmer's field 
+	 * where crops do not grow).
+	 * @param center the center of the neighbordhood to compute the aggregate
+	 * @param radius radius around center to decide what pixels to be included
+	 * @param distMetric distance metric used to define neighborhodd shape
+	 * @param bandIx the band index to use in aggregation (ignored for multispectral data that store data in floating point format). For RGB 0= red, 1 = green, 2 = blue.
+	 * @param aggOp aggregation operator  (maximum: <code>MAX_AGG</code>, minimum: <code>MIN_AGG</code>, or MEAN: <code>MEAN_AGG</code>)
+	 * @param pixelBoundary boundary to apply to pixel search. No pixel will be processed that is outside this boundary.
+	 * @param boundingSearchRecBuffer an optional pre-allocated Rectangle2D object used to store internal boundary computations and save memory allocations 
+	 * @return the aggregation result of pixel values in neighborhood or <code>NO_PIXEL_VALUES </code> if nieghborhood is empty
+	 */
+	public double _aggregate(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx, int aggOp,Rectangle2D boundingSearchRecBuffer) {
+		
+		if(!loaded) {
+			throw new IllegalStateException("cannot perform aggregations on Raster that hasn't been loaded into memory");
+		}
+		
 		double aggRes = 0;
 		
 		int numPixelsInArea = 0;
@@ -498,7 +611,7 @@ public class MyRaster {
 		double ymin = cy - radius;
 		double ymax = cy+radius;
 		
-		Rectangle2D boundingSearchRec =adjustAreaToPointCenters(xmin,xmax,ymin,ymax);
+		Rectangle2D boundingSearchRec =adjustAreaToPointCenters(xmin,xmax,ymin,ymax,boundingSearchRecBuffer);
 		
 		xmin = boundingSearchRec.getMinX();
 		xmax=boundingSearchRec.getMaxX();
@@ -513,7 +626,18 @@ public class MyRaster {
 		for(double northing = ymax;northing>=ymin;northing-=pixelSpatialScaleY) {
 			for(double easting = xmin;easting<=xmax;easting+=pixelSpatialScaleX) {
 				
+				int x = eastingToXIndex(easting);		
+				int y = northingToYIndex(northing);
+
 				
+				//non null matrix of  means boundary defined to determine wheat poitn to include in aggregations
+				if(pixelInsideBoundaryFlags != null) {
+					//pixel location falls outside the boundary? 
+					if(!pixelInsideBoundaryFlags[x][y]) {
+						continue;
+					}
+				}
+			
 				boolean insideNeighborhoodFlag = false;
 				if(distMetric == SpatialData.DistanceMetric.INFINITY_NORM) {
 					insideNeighborhoodFlag=true;//by definition, the bounding box is the nieghborhood
@@ -557,8 +681,8 @@ public class MyRaster {
 				}
 				
 				
-			}	
-		}
+			}	//end iterate over X axis
+		}//end iterate over y axis
 				
 		//there weren't any pixels in neighborhood?
 		if(numPixelsInArea==0) {
@@ -673,5 +797,63 @@ public class MyRaster {
 
 	}
 
+
+	/**
+	 * Loads the internal buffer that holds boolean flags
+	 * to track which pixel falls inside the given (if any provided) pix3el boundary <code>pixelBoundary</code>
+	 * which is required when choosing which picxel is processed in aggregations
+	 * 
+	 * When no boundary is provided (<code>pixelBoundary=null</code>), all pixels are processed
+	 * When a boundary is provided (via constructor or  <code>setPixelBoundary</code> then
+	 *  points inside this boundary determined by this function indicated which 
+	 *  pixel to exlucde from aggregations
+	 */
+	public void loadPixelInsideBoundaryMatrix() {
+		
+		if(pixelBoundary== null) {
+			//all points consider inside boundary of entire raster
+			pixelInsideBoundaryFlags=null;
+			return;
+		}
+
+		double xmax = boundingBox.getMaxX();
+		double xmin = boundingBox.getMinX();
+		double ymax = boundingBox.getMaxY();
+		double ymin = boundingBox.getMinY();
+
+		
+		Rectangle2D boundingSearchRec =adjustAreaToPointCenters(xmin,xmax,ymin,ymax,null);
+		
+		xmin = boundingSearchRec.getMinX();
+		xmax=boundingSearchRec.getMaxX();
+		ymin = boundingSearchRec.getMinY();
+		ymax = boundingSearchRec.getMaxY();
+		
+
+		
+		//create matrix of flags to hold booleans that indicate whether a pixel fallsindise given boundary
+		pixelInsideBoundaryFlags = new boolean[width][height];
+
+		//we start at top left corner of area (maxy, min x)
+		//iterate over every pixel location 
+		for(double northing = ymax;northing>=ymin;northing-=pixelSpatialScaleY) {
+			for(double easting = xmin;easting<=xmax;easting+=pixelSpatialScaleX) {
+
+				int x = eastingToXIndex(easting);		
+				int y = northingToYIndex(northing);
+
+
+				//we have to check whether pixel location falls inside the boundary and log result 
+				pixelInsideBoundaryFlags[x][y] = pixelBoundary.contains(easting, northing);
+				
+
+
+
+			}//end inner loop over esting
+		}//end northing loop
+	}//end func
+
+
+	
 
 }
