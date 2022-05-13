@@ -9,6 +9,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -494,5 +495,26 @@ public class FileHandler {
 		} catch (IOException e) {
 			System.out.println("failed to write results ("+outputDataset.size()+" rows)  to "+outputFile);
 		}
+	}
+
+	/**
+	 * Returns an array of files found in a given direcotry that are of a specific type (e.g., '.tif')
+	 * @param directoryPath search directory
+	 * @param suffix the file extension 
+	 * @return array of files in directory that are of a specific type 
+	 */
+	public static File[] getFilesInDirectory(String directoryPath, String suffix) {
+		File dir = new File(directoryPath);
+
+		// This filter will only include files ending with suffix
+		FilenameFilter filter = new FilenameFilter() {
+		        @Override
+		        public boolean accept(File f, String name) {
+		            return name.endsWith(suffix);
+		        }
+		    };
+		    
+		// apply filter to get files only of specified extension
+		return dir.listFiles(filter);
 	}
 }

@@ -6,6 +6,7 @@ import java.awt.geom.Path2D;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -15,6 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.imaging.ImageReadException;
+import org.apache.commons.io.FilenameUtils;
 
 import data_structure.MyRaster;
 import data_structure.Polygon2D;
@@ -492,7 +494,145 @@ public class YieldProcessor {
 		
 
 		
-	}
+	
+	}else if(operation.equals("-imagery-fusion-direction-of-images")) {//fuse yield with all GeoTIFF imagery in a directory
+		//assumes all the geotiffs have the same extend and represent different bands/vegetation indices
+		//so the in-boundary matrix is only computed once
+		
+		
+	
+		String inputCSV =args[1];
+		String outputCSV = args[2];
+		String inputGeotiffDir =args[3];// directory that holds all raster files to process
+		//String imageryColName =args[4];//only required for MS data as we don't know what band it is. name of bnad column		
+		double radius =Double.parseDouble(args[4]);		
+		SpatialData.DistanceMetric distMetric =SpatialData.DistanceMetric.valueOf(args[5]);
+		//String aggOppStr =args[7];
+		String rExecutablePath=args[6];
+		String rasterInfoRScriptPath = args[7];
+		String fieldBoundaryPath = args[8];
+		
+		String sep = ",";
+		
+		System.out.println("reading yield data: "+inputCSV);
+		
+		SpatialDataset inputDataset = FileHandler.readCSVIntoSpatialDataset(inputCSV,null,sep);
+		
+		
+		String inputCSVHeader = FileHandler.readCSVHeader(inputCSV);
+		
+		String header = inputCSVHeader;
+		
+
+		//read boundary file
+		SpatialDataset boundaryPts = FileHandler.readCSVIntoSpatialDataset(fieldBoundaryPath, null, sep);
+		
+		//convert field boundary to polygon 2d (used to avoid including raster pixels outside the field)
+		Polygon2D fieldBoundaryPoly =boundaryPts.toPolygon2D();
+
+		
+		
+		//need to load first image to create this matrix
+		//that will then be used for all sbusequent geotiffs
+		boolean [][] pixelInsideBoundaryMatrix = null;
+		
+		
+		//used for aggregating pixels in neighbordhoods
+		Rectangle2D preAllocatedRect = new Rectangle2D.Double(); 
+		
+		//get all the '.tif' files in given directiory
+		File [] rasterFiles = FileHandler.getFilesInDirectory(inputGeotiffDir,".tif");
+		
+		if(rasterFiles == null) {
+			System.out.println("No fusion performed. No geotiffs with '.tif' extension in directory "+inputGeotiffDir);
+			System.exit(0);
+		}
+		System.out.println("Fusing yield data with "+rasterFiles.length+" rasters in direcotry "+inputGeotiffDir);
+		
+		for(File f : rasterFiles) {
+			
+			MyRaster r=null;
+			//first time loading a raster into memory (no pixel boundary flag matrix)?
+			if (pixelInsideBoundaryMatrix == null)
+				r = new MyRaster(fieldBoundaryPoly);//matrix will be created from the field boundary polygon file
+			else {
+				r = new MyRaster(pixelInsideBoundaryMatrix);//matrix already created will be used to avoid creating it more than once (a lenghty process)
+			}
+			
+			//System.out.println("...processing raster: "+f.getAbsolutePath());
+			r.load(rExecutablePath, rasterInfoRScriptPath, f.getAbsolutePath());
+			
+			
+			//first image loaded?
+			if (pixelInsideBoundaryMatrix == null) {
+				pixelInsideBoundaryMatrix = r.getPixelInsideBoundaryFlags(); //save the matrix for future imagaes
+			}
+			
+			Iterator<SpatialData> it = inputDataset.iterator();
+			
+			//int aggOpp=-1;
+			
+			int [] aggOperators = {MyRaster.MEAN_AGG,MyRaster.MAX_AGG,MyRaster.MIN_AGG};
+			String [] aggOperatorNames = {"mean","max","min"};
+		
+			
+			int bandFromIx=0;
+			int bandToIx=0;
+			
+			if(r.isRGBRaster()) {
+				bandFromIx=0;
+				bandToIx=2;
+			}
+			
+	
+			
+			//System.out.println("fusiong yield data and imagery ");
+			
+			
+			while(it.hasNext()) {
+				SpatialData pt = it.next();
+				Point2D coord = pt.getLocation();
+				
+				
+				
+				//append result to point
+				String attributes = pt.getAttributes();
+				
+				//do all the aggregations
+				for(int aggOp : aggOperators) {
+					//perform aggregation for each desired band
+					for(int i = bandFromIx;i<=bandToIx;i++) {
+						//perform aggregation around point 
+						double aggRes = r. _aggregate(coord,radius,distMetric,i,aggOp,preAllocatedRect);
+						
+						attributes= attributes+sep + aggRes;
+					}
+				}
+				
+				pt.setAttributes(attributes);
+				
+			
+			}
+			
+			//use the name of the file as the band name for column band identification, and remove extension
+			String imageryColName = FilenameUtils.removeExtension(f.getName());
+			for(String aggOpName : aggOperatorNames) {
+				header = header+",";
+				if(r.isMSRaster()) {
+					header = header + "MS_" + imageryColName + "_"+aggOpName;
+				}else {
+					header = header + "RGB_Red_"+aggOpName+","+ "RGB_Green_"+aggOpName+","+ "RGB_Blue_"+aggOpName;
+				}
+			}
+			
+			
+	
+		}//end iterate each raster file
+		System.out.println("writing fusion results to "+outputCSV);
+		FileHandler.writeSpatialDatasetToFile(outputCSV,header, inputDataset,true,",",false);
+		
+	}//end cmd arguemnt for processing all images in directory
+
 		System.exit(0);
 	}
 

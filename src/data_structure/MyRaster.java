@@ -81,6 +81,18 @@ public class MyRaster {
 
 	}
 	
+	/**
+	 * creates a raster object from a file path to a geotiff. 
+	 * Avoids reading anything into memory until other API functions are called
+	 * @param pixelInsideBoundaryFlags a predifined matrix of flags indicating what pixel falls outside the proessing boundarnyc
+	 */
+	public MyRaster(boolean [][] pixelInsideBoundaryFlags ) {
+		loaded=false;
+		this.pixelInsideBoundaryFlags=pixelInsideBoundaryFlags;
+
+	}
+	
+	
 
 	public Polygon2D getPixelBoundary() {
 		return pixelBoundary;
@@ -95,6 +107,15 @@ public class MyRaster {
 	}
 
 	
+	
+	public boolean[][] getPixelInsideBoundaryFlags() {
+		return pixelInsideBoundaryFlags;
+	}
+
+	public void setPixelInsideBoundaryFlags(boolean[][] pixelInsideBoundaryFlags) {
+		this.pixelInsideBoundaryFlags = pixelInsideBoundaryFlags;
+	}
+
 	public Rectangle2D getBoundingBox() {
 		return boundingBox;
 	}
@@ -304,7 +325,11 @@ public class MyRaster {
 
 		boundingBox = new Rectangle2D.Double(xmin, ymin, xmax - xmin, ymax - ymin);
 		
-		loadPixelInsideBoundaryMatrix();
+		//avoid re-creating the pixel boundary matrix if 
+		//it was already provided
+		if(pixelInsideBoundaryFlags == null) {
+			loadPixelInsideBoundaryMatrix();
+		}
 
 	}
 
@@ -803,10 +828,16 @@ public class MyRaster {
 	 * to track which pixel falls inside the given (if any provided) pix3el boundary <code>pixelBoundary</code>
 	 * which is required when choosing which picxel is processed in aggregations
 	 * 
+	 * 
+	 * 
 	 * When no boundary is provided (<code>pixelBoundary=null</code>), all pixels are processed
 	 * When a boundary is provided (via constructor or  <code>setPixelBoundary</code> then
 	 *  points inside this boundary determined by this function indicated which 
 	 *  pixel to exlucde from aggregations
+	 *  
+	 *  
+	 *  Note that this function can take a considerable amount of time for large rasters.
+	 *  TODO: spead up using mutliple threads
 	 */
 	public void loadPixelInsideBoundaryMatrix() {
 		
@@ -815,7 +846,9 @@ public class MyRaster {
 			pixelInsideBoundaryFlags=null;
 			return;
 		}
-
+		
+		System.out.println("creating pixel inside boundary flag matrix...");
+		
 		double xmax = boundingBox.getMaxX();
 		double xmin = boundingBox.getMinX();
 		double ymax = boundingBox.getMaxY();
