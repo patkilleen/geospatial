@@ -658,25 +658,52 @@ public class MyRaster {
 		ymax = boundingSearchRec.getMaxY();
 		
 				 
+		int xminIx = eastingToXIndex(xmin);
+		int xmaxIx = eastingToXIndex(xmax);
+		//y index starts small cause top left pixel is (0,0), and going south (decreasing northing) 
+				//means y index increases
+		int ymaxIx = northingToYIndex(ymin);
+		int yminIx = northingToYIndex(ymax);
 		
 		Point2D pt = new Point2D.Double(0,0);
+		
+		//keep track of pixel center
+		//double northing = ymax;
+		//double easting = xmin;
 		//iterate over every point inside this area, ignoring NO_DATA values
 		//we start at top left corner of area (maxy, min x)
-		for(double northing = ymax;northing>=ymin;northing-=pixelSpatialScaleY) {
-			for(double easting = xmin;easting<=xmax;easting+=pixelSpatialScaleX) {
-				
-				int x = eastingToXIndex(easting);		
-				int y = northingToYIndex(northing);
+//		for(int northingIx = ymaxIx;northingIx>=yminIx;northingIx--) {
+			
 
+	//		easting = xmin;
+			
+		//	for(int eastingIx = xminIx;eastingIx<=xmaxIx;eastingIx++) {
+		
+		
+		int y=yminIx-1;//y index starts small cause top left pixel is (0,0), and going south (decreasing northing) 
+		//means y index increases
+		for(double northing = ymax;northing>=ymin;northing-=pixelSpatialScaleY) {
+			y++;
+			int x = xminIx-1;
+			for(double easting = xmin;easting<=xmax;easting+=pixelSpatialScaleX) {
+				x++;
+				//int x = eastingToXIndex(easting);		
+				//int y = northingToYIndex(northing);
+				
 				
 				//non null matrix of  means boundary defined to determine wheat poitn to include in aggregations
 				if(pixelInsideBoundaryFlags != null) {
 					//pixel location falls outside the boundary? 
+					//if(!pixelInsideBoundaryFlags[eastingIx][northingIx]) {
 					if(!pixelInsideBoundaryFlags[x][y]) {
+						
 						continue;
 					}
 				}
-			
+				
+				//keep track of easting coordinate
+				//easting=xmin+ eastingIx*pixelSpatialScaleX;
+				
 				boolean insideNeighborhoodFlag = false;
 				if(distMetric == SpatialData.DistanceMetric.INFINITY_NORM) {
 					insideNeighborhoodFlag=true;//by definition, the bounding box is the nieghborhood
@@ -692,35 +719,53 @@ public class MyRaster {
 				
 				//do we include pixel value in mean
 				if(insideNeighborhoodFlag) {
-					float f = getPixelValue(easting, northing, bandIx,pixelValueBuffer);
+					//float f = getPixelValue(eastingIx, northingIx, bandIx,pixelValueBuffer);
+					float f = getPixelValue(x, y, bandIx,pixelValueBuffer);
 					
 					//we ignoreing missing values?
 					if(ignoringNODATAValues) {
 						if(f == missingDataFillerValue) {
+							
 							continue;//a NO_DATA value, skip to next pixel
 						}
 					}
 					numPixelsInArea++;
 					
-					if(aggOp ==MEAN_AGG) {
+					//apply the aggregation operator
+					switch(aggOp) {
+					case MEAN_AGG:
 						aggRes += f;
-					}else if(aggOp ==MAX_AGG) {
+						break;
+					case MAX_AGG:
 						
 						//found bigger pixel value?
 						if(f>aggRes) {
 							aggRes = f;	
 						}
-					}else if(aggOp ==MIN_AGG) {
+						break;
+					case MIN_AGG:
 						
 						//found smaller pixel value?
 						if(f<aggRes) {
 							aggRes = f;	
 						}
+						
+						break;
+					default:
+						throw new IllegalArgumentException("Unknown aggregation operator: "+aggOp);
 					}
-				}
+				}// end inside neigborhood
+				
+				
+				//easting+= pixelSpatialScaleX;
 				
 				
 			}	//end iterate over X axis
+			
+			//keep track of northing coordinate
+			//northing-= pixelSpatialScaleY;
+			
+			//y++;
 		}//end iterate over y axis
 				
 		//there weren't any pixels in neighborhood?
