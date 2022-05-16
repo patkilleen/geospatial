@@ -156,8 +156,11 @@ class TestMyRaster {
 	@Test
 	void test_getPixelValue() throws ImageReadException, IOException {
 	
+		
 		MyRaster r = new MyRaster();
 		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
+		
+		float [] pixelValueBuffer = new float[r.getNumBands()];
 		List<double[]> imgData = loadPixelsValues();
 		
 		for(int i = 0;i<imgData.size();i++) {
@@ -167,7 +170,7 @@ class TestMyRaster {
 			double northing = triple[Y_IX];
 			double expectedPixelValue = triple[PIXEL_VALUE_IX];
 			
-			double actualValue = r.getPixelValue(easting, northing, 0);
+			double actualValue = r.getPixelValue(easting, northing, 0,pixelValueBuffer);
 			
 			Assert.assertEquals(expectedPixelValue,actualValue,DOUBLE_COMPARE_EPSILON);
 		}
@@ -194,7 +197,7 @@ class TestMyRaster {
 	void test_mean() throws ImageReadException, IOException {
 		MyRaster r = new MyRaster();
 		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
-		
+		float [] pixelValueBuffer = new float[r.getNumBands()];
 		
 		double radius_halfPixelAway = r.getPixelSpatialScaleX()/2.0;
 		double radius_1PixelAway = r.getPixelSpatialScaleX();
@@ -208,30 +211,30 @@ class TestMyRaster {
 		// 28 28 ...
 		// ...
 		
-		Assert.assertEquals(28.0,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(28.0,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(28.0,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(28.0,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//...
 		// 128 191 ...
 		// (128) 191 ...
 		
-		Assert.assertEquals(128,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(128,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(128,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(128,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		//         ....
 		// ... 13 23
 		// ... 13 (13)
 		
-		Assert.assertEquals(13,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(13,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(13,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(13,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 
 		//... 191 (82)
 		//    82   82
 		//        ...
 		
-		Assert.assertEquals(82,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(82,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(82,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(82,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		
@@ -240,8 +243,8 @@ class TestMyRaster {
 		// (28) (28) 28  ...
 		//  28   82  222
 		
-		Assert.assertEquals((28.0+28.0+28.0+28.0)/4.0,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((28.0+28.0+28.0)/3.0,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((28.0+28.0+28.0+28.0)/4.0,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((28.0+28.0+28.0)/3.0,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//...
@@ -249,8 +252,8 @@ class TestMyRaster {
 		// (128) (191) 28 ...
 		// (128) (191) 191  ...
 		
-		Assert.assertEquals((128.0 + 128.0 + 191.0+191.0)/4.0,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((128.0 + 128.0 + 191.0)/3.0,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((128.0 + 128.0 + 191.0+191.0)/4.0,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((128.0 + 128.0 + 191.0)/3.0,r.mean(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//...                    ...
@@ -258,8 +261,8 @@ class TestMyRaster {
 		// ...    13   (13)    (23)   
 		// ...  13   (13) (13)
 		
-		Assert.assertEquals((13.0+13.0+13.0+23.0)/4.0,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((13.0+13.0+23.0)/3.0,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((13.0+13.0+13.0+23.0)/4.0,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((13.0+13.0+23.0)/3.0,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		
@@ -268,16 +271,16 @@ class TestMyRaster {
 		// ...  82  (82)   (82)
 		//  ...  222 82 222
 		
-		Assert.assertEquals((82.0+82.0+82.0+191.0)/4.0,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((82.0+82.0+191.0)/3.0,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((82.0+82.0+82.0+191.0)/4.0,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((82.0+82.0+191.0)/3.0,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//... 222 (191) (82)
 				// ...  82  (82)   (82)
 				//  ...  222 82 222
 				
-				Assert.assertEquals((82.0+82.0+82.0+191.0)/4.0,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-				Assert.assertEquals((82.0+82.0+191.0)/3.0,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals((82.0+82.0+82.0+191.0)/4.0,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals((82.0+82.0+191.0)/3.0,r.mean(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 				
 				
 				/*
@@ -286,16 +289,16 @@ class TestMyRaster {
 				 * 		82	(82)	(222)	159
 				 * 		191	82		222	159
 				 */
-				Assert.assertEquals((222.0+82.0+222.0+159.0)/4.0,r.mean(new Point2D.Double(438512,5019648), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-				Assert.assertEquals((222.0+82.0+222.0+159.0)/4.0,r.mean(new Point2D.Double(438512,5019648), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals((222.0+82.0+222.0+159.0)/4.0,r.mean(new Point2D.Double(438512,5019648), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals((222.0+82.0+222.0+159.0)/4.0,r.mean(new Point2D.Double(438512,5019648), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 				
 				
 				
 				
 
 				
-				Assert.assertEquals((222.0+159+159+159+82+222+159+159+82+82+222+159+191+82+222+159)/16.0,r.mean(new Point2D.Double(438512,5019648), radius_2PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-				Assert.assertEquals((159+159+82+222+159+159+82+82+222+159+82+222)/12.0,r.mean(new Point2D.Double(438512,5019648), radius_2PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals((222.0+159+159+159+82+222+159+159+82+82+222+159+191+82+222+159)/16.0,r.mean(new Point2D.Double(438512,5019648), radius_2PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals((159+159+82+222+159+159+82+82+222+159+82+222)/12.0,r.mean(new Point2D.Double(438512,5019648), radius_2PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 				
 		
 	}
@@ -307,6 +310,7 @@ class TestMyRaster {
 		MyRaster r = new MyRaster();
 		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
 		
+		float [] pixelValueBuffer = new float[r.getNumBands()];
 		
 		double radius_halfPixelAway = r.getPixelSpatialScaleX()/2.0;
 		double radius_1PixelAway = r.getPixelSpatialScaleX();
@@ -320,30 +324,30 @@ class TestMyRaster {
 		// 28 28 ...
 		// ...
 		
-		Assert.assertEquals(28.0,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(28.0,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(28.0,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(28.0,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//...
 		// 128 191 ...
 		// (128) 191 ...
 		
-		Assert.assertEquals(128,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(128,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(128,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(128,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		//         ....
 		// ... 13 23
 		// ... 13 (13)
 		
-		Assert.assertEquals(13,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(13,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(13,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(13,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 
 		//... 191 (82)
 		//    82   82
 		//        ...
 		
-		Assert.assertEquals(82,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(82,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(82,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(82,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		
@@ -352,8 +356,8 @@ class TestMyRaster {
 		// (28) (28) 28  ...
 		//  28   82  222
 		
-		Assert.assertEquals(28.0,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(28.0,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(28.0,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(28.0,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//...
@@ -361,8 +365,8 @@ class TestMyRaster {
 		// (128) (191) 28 ...
 		// (128) (191) 191  ...
 		
-		Assert.assertEquals(191.0,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(191.0,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(191.0,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(191.0,r.max(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//...                    ...
@@ -370,8 +374,8 @@ class TestMyRaster {
 		// ...    13   (13)    (23)   
 		// ...  13   (13) (13)
 		
-		Assert.assertEquals(23.0,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(23.0,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(23.0,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(23.0,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		
@@ -380,16 +384,16 @@ class TestMyRaster {
 		// ...  82  (82)   (82)
 		//  ...  222 82 222
 		
-		Assert.assertEquals(191.0,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(191.0,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(191.0,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(191.0,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//... 222 (191) (82)
 				// ...  82  (82)   (82)
 				//  ...  222 82 222
 				
-				Assert.assertEquals(191.0,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-				Assert.assertEquals(191.0,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals(191.0,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals(191.0,r.max(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 				
 				
 				/*
@@ -398,16 +402,16 @@ class TestMyRaster {
 				 * 		82	(82)	(222)	159
 				 * 		191	82		222	159
 				 */
-				Assert.assertEquals(222.0,r.max(new Point2D.Double(438512,5019648), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-				Assert.assertEquals(222.0,r.max(new Point2D.Double(438512,5019648), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals(222.0,r.max(new Point2D.Double(438512,5019648), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals(222.0,r.max(new Point2D.Double(438512,5019648), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 				
 				
 				
 				
 
 				
-				Assert.assertEquals(222.0,r.max(new Point2D.Double(438512,5019648), radius_2PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-				Assert.assertEquals(222.0,r.max(new Point2D.Double(438512,5019648), radius_2PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals(222.0,r.max(new Point2D.Double(438512,5019648), radius_2PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals(222.0,r.max(new Point2D.Double(438512,5019648), radius_2PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 				
 		
 	}
@@ -418,7 +422,7 @@ class TestMyRaster {
 		MyRaster r = new MyRaster();
 		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
 		
-		
+		float [] pixelValueBuffer = new float[r.getNumBands()];
 		double radius_halfPixelAway = r.getPixelSpatialScaleX()/2.0;
 		double radius_1PixelAway = r.getPixelSpatialScaleX();
 		//double radius_1andHalfPixelAway =radius_1PixelAway +radius_halfPixelAway;
@@ -431,30 +435,30 @@ class TestMyRaster {
 		// 28 28 ...
 		// ...
 		
-		Assert.assertEquals(28.0,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(28.0,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(28.0,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(28.0,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//...
 		// 128 191 ...
 		// (128) 191 ...
 		
-		Assert.assertEquals(128,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(128,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(128,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(128,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		//         ....
 		// ... 13 23
 		// ... 13 (13)
 		
-		Assert.assertEquals(13,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(13,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(13,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(13,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 
 		//... 191 (82)
 		//    82   82
 		//        ...
 		
-		Assert.assertEquals(82,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(82,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(82,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(82,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		
@@ -463,8 +467,8 @@ class TestMyRaster {
 		// (28) (28) 28  ...
 		//  28   82  222
 		
-		Assert.assertEquals(28,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(28,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(28,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(28,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//...
@@ -472,8 +476,8 @@ class TestMyRaster {
 		// (128) (191) 28 ...
 		// (128) (191) 191  ...
 		
-		Assert.assertEquals(128,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(128,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(128,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(128,r.min(new Point2D.Double(bb.getMinX()+radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//...                    ...
@@ -481,8 +485,8 @@ class TestMyRaster {
 		// ...    13   (13)    (23)   
 		// ...  13   (13) (13)
 		
-		Assert.assertEquals(13,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(13,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(13,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(13,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMinY()+radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		
@@ -491,16 +495,16 @@ class TestMyRaster {
 		// ...  82  (82)   (82)
 		//  ...  222 82 222
 		
-		Assert.assertEquals(82,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals(82,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(82,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(82,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//... 222 (191) (82)
 				// ...  82  (82)   (82)
 				//  ...  222 82 222
 				
-				Assert.assertEquals(82,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-				Assert.assertEquals(82,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals(82,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals(82,r.min(new Point2D.Double(bb.getMaxX()-radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 				
 				
 				/*
@@ -509,16 +513,16 @@ class TestMyRaster {
 				 * 		82	(82)	(222)	159
 				 * 		191	82		222	159
 				 */
-				Assert.assertEquals(82,r.min(new Point2D.Double(438512,5019648), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-				Assert.assertEquals(82,r.min(new Point2D.Double(438512,5019648), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals(82,r.min(new Point2D.Double(438512,5019648), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals(82,r.min(new Point2D.Double(438512,5019648), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 				
 				
 				
 				
 
 				
-				Assert.assertEquals(82,r.min(new Point2D.Double(438512,5019648), radius_2PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-				Assert.assertEquals(82,r.min(new Point2D.Double(438512,5019648), radius_2PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals(82,r.min(new Point2D.Double(438512,5019648), radius_2PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+				Assert.assertEquals(82,r.min(new Point2D.Double(438512,5019648), radius_2PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 				
 		
 	}
@@ -548,7 +552,7 @@ class TestMyRaster {
 		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
 		
 		
-		
+		float [] pixelValueBuffer = new float[r.getNumBands()];
 		
 		Rectangle2D bb = r.getBoundingBox();
 	
@@ -563,8 +567,8 @@ class TestMyRaster {
 		//...
 		
 
-		Assert.assertEquals((28.0+28.0+82.0+222.0)/4.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((28.0+28.0+82.0)/3.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((28.0+28.0+82.0+222.0)/4.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((28.0+28.0+82.0)/3.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//TOP RIGHT CORNER
@@ -576,8 +580,8 @@ class TestMyRaster {
 		 *....								...
 		 */
 
-		Assert.assertEquals((82.0 +82.0 + 222.0 + 82.0)/4.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((82.0+82.0+82.0)/3.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((82.0 +82.0 + 222.0 + 82.0)/4.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((82.0+82.0+82.0)/3.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 
@@ -590,8 +594,8 @@ class TestMyRaster {
 		 * ...		159		[13]	[13]	[13]
 		 */
 
-		Assert.assertEquals((13.0 +13.0 + 13.0 + 23.0)/4.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((13.0+13.0+23.0)/3.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((13.0 +13.0 + 13.0 + 23.0)/4.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((13.0+13.0+23.0)/3.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//BOT LEFT CORNER
@@ -603,8 +607,8 @@ class TestMyRaster {
 		 * 			[128]		[191]	[191]	82	...
 		 */
 
-		Assert.assertEquals((191.0 +191.0 + 191.0 + 28.0)/4.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((191.0+191.0+28.0)/3.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((191.0 +191.0 + 191.0 + 28.0)/4.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((191.0+191.0+28.0)/3.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 
 		//BOT CENTER
@@ -615,8 +619,8 @@ class TestMyRaster {
 		*... 191		[82]	[222]	[159]	13		...
 		 */
 
-		Assert.assertEquals((82.0+82.0+222.0+222.0+99.0+99.0)/6.0,r.mean(new Point2D.Double(438512+radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((82.0+222.0+222.0+99.0)/4.0,r.mean(new Point2D.Double(438512+radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((82.0+82.0+222.0+222.0+99.0+99.0)/6.0,r.mean(new Point2D.Double(438512+radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((82.0+222.0+222.0+99.0)/4.0,r.mean(new Point2D.Double(438512+radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 
 		
@@ -638,8 +642,8 @@ class TestMyRaster {
 		*... 	82		[222]		[159]	[99]		13		...
 		 */
 
-		Assert.assertEquals((159.0+159.0+222.0+159.0)/4.0,r.mean(new Point2D.Double(438513-radius_halfPixelAway,5019648 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((159.0+159.0+222.0)/3.0,r.mean(new Point2D.Double(438513-radius_halfPixelAway,5019648 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((159.0+159.0+222.0+159.0)/4.0,r.mean(new Point2D.Double(438513-radius_halfPixelAway,5019648 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((159.0+159.0+222.0)/3.0,r.mean(new Point2D.Double(438513-radius_halfPixelAway,5019648 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 
 
@@ -684,7 +688,7 @@ class TestMyRaster {
 		
 		Rectangle2D bb = r.getBoundingBox();
 	
-		
+		float [] pixelValueBuffer = new float[r.getNumBands()];
 		
 		//TOP LEFT CORNER
 		
@@ -695,8 +699,8 @@ class TestMyRaster {
 		//...
 		
 
-		Assert.assertEquals((28.0+28.0+82.0+222.0)/4.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((28.0+28.0+82.0)/3.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((28.0+28.0+82.0+222.0)/4.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((28.0+28.0+82.0)/3.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//TOP RIGHT CORNER
@@ -708,8 +712,8 @@ class TestMyRaster {
 		 *....								...
 		 */
 
-		Assert.assertEquals((82.0 +82.0 + 222.0 + 82.0)/4.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((82.0+82.0+82.0)/3.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((82.0 +82.0 + 222.0 + 82.0)/4.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((82.0+82.0+82.0)/3.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 
@@ -722,8 +726,8 @@ class TestMyRaster {
 		 * ...		159		[13]	[13]	[13]
 		 */
 
-		Assert.assertEquals((13.0 +13.0 + 13.0 + 23.0)/4.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((13.0+13.0+23.0)/3.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((13.0 +13.0 + 13.0 + 23.0)/4.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((13.0+13.0+23.0)/3.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 		
 		//BOT LEFT CORNER
@@ -735,8 +739,8 @@ class TestMyRaster {
 		 * 			[128]		[191]	[191]	82	...
 		 */
 
-		Assert.assertEquals((191.0 +191.0 + 191.0 + 28.0)/4.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((191.0+191.0+28.0)/3.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((191.0 +191.0 + 191.0 + 28.0)/4.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((191.0+191.0+28.0)/3.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 
 		//BOT CENTER
@@ -747,8 +751,8 @@ class TestMyRaster {
 		*... 191		[82]	[222]	[159]	13		...
 		 */
 
-		Assert.assertEquals((82.0+82.0+222.0+222.0+99.0+99.0)/6.0,r.mean(new Point2D.Double(438512+radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((82.0+222.0+222.0+99.0)/4.0,r.mean(new Point2D.Double(438512+radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((82.0+82.0+222.0+222.0+99.0+99.0)/6.0,r.mean(new Point2D.Double(438512+radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((82.0+222.0+222.0+99.0)/4.0,r.mean(new Point2D.Double(438512+radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 
 		
@@ -770,8 +774,8 @@ class TestMyRaster {
 		*... 	82		[222]		[159]	[99]		13		...
 		 */
 
-		Assert.assertEquals((159.0+159.0+222.0+159.0)/4.0,r.mean(new Point2D.Double(438513-radius_halfPixelAway,5019648 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null),DOUBLE_COMPARE_EPSILON);
-		Assert.assertEquals((159.0+159.0+222.0)/3.0,r.mean(new Point2D.Double(438513-radius_halfPixelAway,5019648 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((159.0+159.0+222.0+159.0)/4.0,r.mean(new Point2D.Double(438513-radius_halfPixelAway,5019648 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((159.0+159.0+222.0)/3.0,r.mean(new Point2D.Double(438513-radius_halfPixelAway,5019648 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
 		
 
 

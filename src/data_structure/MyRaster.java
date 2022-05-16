@@ -53,7 +53,6 @@ public class MyRaster {
 
 	private int numBands;
 
-	private float [] pixelValueBuffer;
 
 	Raster r = null;//used to store RGB raster data
 	TiffRasterData rasterData=null;//used to store MS raster data
@@ -93,6 +92,13 @@ public class MyRaster {
 	}
 	
 	
+	public int getNumBands() {
+		return numBands;
+	}
+
+	public void setNumBands(int numBands) {
+		this.numBands = numBands;
+	}
 
 	public Polygon2D getPixelBoundary() {
 		return pixelBoundary;
@@ -168,12 +174,14 @@ public class MyRaster {
 
 	/**
 	 * returns a pixel value at given image cell/tile
+	 * 
 	 * @param x tile x index
 	 * @param y tile y index
 	 * @param bandIx the band index (0 for MS, and 0-2 for RGB)
+	 * @param pixelValueBuffer an optional pre-allocated buffer to store temporary pixel values for raster with more than one band
 	 * @return
 	 */
-	public float getPixelValue(int x, int y, int bandIx) {
+	public float getPixelValue(int x, int y, int bandIx, float [] pixelValueBuffer) {
 		if(!loaded) {
 			throw new IllegalStateException("raster not loaded, cannot get pixel value");
 		}
@@ -193,8 +201,10 @@ public class MyRaster {
 		if(!isRGBRaster) {
 			f = rasterData.getValue(x, y);
 		}else {
-			pixelValueBuffer = r.getPixel(x, y, pixelValueBuffer);
-			f = pixelValueBuffer[bandIx];
+			
+			
+			float [] _pixelValueBuffer = r.getPixel(x, y, pixelValueBuffer);
+			f = _pixelValueBuffer[bandIx];
 		}
 
 		return f;
@@ -206,9 +216,10 @@ public class MyRaster {
 	 * @param easting UTM x coordinate
 	 * @param northing UTM y coordinate
 	 * @param bandIx the band index (0 for MS, and 0-2 for RGB)
+	 * @param pixelValueBuffer an optional pre-allocated buffer to store temporary pixel values for raster with more than one band
 	 * @return
 	 */
-	public float getPixelValue(double easting, double northing, int bandIx) {
+	public float getPixelValue(double easting, double northing, int bandIx,float [] pixelValueBuffer) {
 
 		//if(!boundingBox.contains(easting, northing)) { avoid using "contains" since some boundary cases are considered not in image
 		if(easting < boundingBox.getMinX() || easting > boundingBox.getMaxX() || northing < boundingBox.getMinY() || northing > boundingBox.getMaxY()) {
@@ -218,7 +229,7 @@ public class MyRaster {
 		int x = eastingToXIndex(easting);		
 		int y = northingToYIndex(northing);
 
-		return getPixelValue(x,y,bandIx);
+		return getPixelValue(x,y,bandIx,pixelValueBuffer);
 	}
 	
 	private int eastingToXIndex(double easting){
@@ -407,7 +418,6 @@ public class MyRaster {
 
 			numBands = r.getNumBands();
 
-			pixelValueBuffer = new float[numBands];
 
 		}else {
 			//MS DATA
@@ -560,10 +570,11 @@ public class MyRaster {
 	 * @param distMetric distance metric used to define neighborhodd shape
 	 * @param bandIx the band index to use in mean (ignored for multispectral data that store data in floating point format). For RGB 0= red, 1 = green, 2 = blue.
 	 * @param boundingSearchRecBuffer an optional pre-allocated Rectangle2D object used to store internal boundary computations and save memory allocations
+	 * @param pixelValueBuffer an optional pre-allocated buffer to store temporary pixel values for raster with more than one band
 	 * @return the mean of pixel values in neighborhood or -9999 if nieghborhood empty
 	 */
-	public double mean(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx,Rectangle2D boundingSearchRecBuffer) {
-		return _aggregate(center,radius,distMetric,bandIx,MEAN_AGG,boundingSearchRecBuffer);
+	public double mean(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx,Rectangle2D boundingSearchRecBuffer,float [] pixelValueBuffer) {
+		return _aggregate(center,radius,distMetric,bandIx,MEAN_AGG,boundingSearchRecBuffer,pixelValueBuffer);
 	}
 	/**
 	 * Computes the max value of pixels who's location (pixel center) fall within a radius around a point center.
@@ -572,10 +583,11 @@ public class MyRaster {
 	 * @param distMetric distance metric used to define neighborhodd shape
 	 * @param bandIx the band index to use in max (ignored for multispectral data that store data in floating point format). For RGB 0= red, 1 = green, 2 = blue.
 	 * @param boundingSearchRecBuffer an optional pre-allocated Rectangle2D object used to store internal boundary computations and save memory allocations
+	 * @param pixelValueBuffer an optional pre-allocated buffer to store temporary pixel values for raster with more than one band
 	 * @return the max of pixel values in neighborhood or -9999 if nieghborhood empty
 	 */
-	public double max(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx,Rectangle2D boundingSearchRecBuffer) {
-		return _aggregate(center,radius,distMetric,bandIx,MAX_AGG,boundingSearchRecBuffer);
+	public double max(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx,Rectangle2D boundingSearchRecBuffer,float [] pixelValueBuffer) {
+		return _aggregate(center,radius,distMetric,bandIx,MAX_AGG,boundingSearchRecBuffer,pixelValueBuffer);
 	}
 	
 	/**
@@ -585,10 +597,11 @@ public class MyRaster {
 	 * @param distMetric distance metric used to define neighborhodd shape
 	 * @param bandIx the band index to use in min (ignored for multispectral data that store data in floating point format). For RGB 0= red, 1 = green, 2 = blue.
 	 * @param boundingSearchRecBuffer an optional pre-allocated Rectangle2D object used to store internal boundary computations and save memory allocations
+	 * @param pixelValueBuffer an optional pre-allocated buffer to store temporary pixel values for raster with more than one band
 	 * @return the min of pixel values in neighborhood or -9999 if nieghborhood empty
 	 */
-	public double min(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx,Rectangle2D boundingSearchRecBuffer) {
-		return _aggregate(center,radius,distMetric,bandIx,MIN_AGG,boundingSearchRecBuffer);
+	public double min(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx,Rectangle2D boundingSearchRecBuffer,float [] pixelValueBuffer) {
+		return _aggregate(center,radius,distMetric,bandIx,MIN_AGG,boundingSearchRecBuffer,pixelValueBuffer);
 	}
 	
 	
@@ -602,10 +615,11 @@ public class MyRaster {
 	 * @param bandIx the band index to use in aggregation (ignored for multispectral data that store data in floating point format). For RGB 0= red, 1 = green, 2 = blue.
 	 * @param aggOp aggregation operator  (maximum: <code>MAX_AGG</code>, minimum: <code>MIN_AGG</code>, or MEAN: <code>MEAN_AGG</code>)
 	 * @param pixelBoundary boundary to apply to pixel search. No pixel will be processed that is outside this boundary.
-	 * @param boundingSearchRecBuffer an optional pre-allocated Rectangle2D object used to store internal boundary computations and save memory allocations 
+	 * @param boundingSearchRecBuffer an optional pre-allocated Rectangle2D object used to store internal boundary computations and save memory allocations
+	 * @param pixelValueBuffer an optional pre-allocated buffer to store temporary pixel values for raster with more than one band 
 	 * @return the aggregation result of pixel values in neighborhood or <code>NO_PIXEL_VALUES </code> if nieghborhood is empty
 	 */
-	public double _aggregate(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx, int aggOp,Rectangle2D boundingSearchRecBuffer) {
+	public double _aggregate(Point2D center, double radius, SpatialData.DistanceMetric distMetric, int bandIx, int aggOp,Rectangle2D boundingSearchRecBuffer,float [] pixelValueBuffer) {
 		
 		if(!loaded) {
 			throw new IllegalStateException("cannot perform aggregations on Raster that hasn't been loaded into memory");
@@ -678,7 +692,7 @@ public class MyRaster {
 				
 				//do we include pixel value in mean
 				if(insideNeighborhoodFlag) {
-					float f = getPixelValue(easting, northing, bandIx);
+					float f = getPixelValue(easting, northing, bandIx,pixelValueBuffer);
 					
 					//we ignoreing missing values?
 					if(ignoringNODATAValues) {
@@ -741,7 +755,7 @@ public class MyRaster {
 		return res;
 		
 	}
-	public static void main(String [] args) throws ImageReadException, IOException {
+	/*public static void main(String [] args) throws ImageReadException, IOException {
 		String rExecutablePath=args[0];
 		String rasterInfoRScriptPath = args[1];
 		String inputTiffFile=args[2];
@@ -750,7 +764,7 @@ public class MyRaster {
 		rasterToCSV(rExecutablePath,rasterInfoRScriptPath,inputTiffFile,outputCSV,bandIx);
 	
 		
-	}
+	}*/
 	
 	
 	/**
@@ -760,11 +774,12 @@ public class MyRaster {
 	 * @param rasterInfoRScriptPath path to the R script that will summarize the raster's info: <project root>/r/raster-info.r
 	 * @param inputTiffFile path to GeoTIFF raster file to convert to CSV
 	 * @param outputCSV output CSV file path
-	 * @param bandIx the band index to include in the CSV file (ignored for multispectral data that store data in floating point format). For RGB 0= red, 1 = green, 2 = blue. 
+	 * @param bandIx the band index to include in the CSV file (ignored for multispectral data that store data in floating point format). For RGB 0= red, 1 = green, 2 = blue.
+	 * @param pixelValueBuffer an optional pre-allocated buffer to store temporary pixel values for raster with more than one band 
 	 * @throws ImageReadException
 	 * @throws IOException
 	 */
-	public static void rasterToCSV(String rExecutablePath, String rasterInfoRScriptPath, String inputTiffFile, String outputCSV, int bandIx) throws ImageReadException, IOException {
+	public static void rasterToCSV(String rExecutablePath, String rasterInfoRScriptPath, String inputTiffFile, String outputCSV, int bandIx,float [] pixelValueBuffer) throws ImageReadException, IOException {
 		MyRaster r = new MyRaster();
 		r.load(rExecutablePath,rasterInfoRScriptPath,inputTiffFile);
 		
@@ -800,7 +815,7 @@ public class MyRaster {
 		//for(double northing = ymin+ (r.pixelSpatialScaleY/2.0);northing<=ymax;northing+=yStep) {
 			//for(double easting = xmin+ (r.pixelSpatialScaleX/2.0);easting<=xmax;easting+=xStep) {
 				
-				float f = r.getPixelValue(easting, northing, bandIx);//index not used for MS data
+				float f = r.getPixelValue(easting, northing, bandIx,pixelValueBuffer);//index not used for MS data
 				if(r.isRGBRaster()) {
 					output = easting+","+northing+","+((int)f);
 				}else {
