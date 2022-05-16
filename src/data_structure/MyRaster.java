@@ -1,9 +1,12 @@
 package data_structure;
 
+import java.awt.Point;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
 import java.awt.image.Raster;
+import java.awt.image.SampleModel;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -11,7 +14,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 
 import org.apache.commons.imaging.FormatCompliance;
 import org.apache.commons.imaging.ImageReadException;
@@ -32,6 +38,7 @@ import io.FileHandler;
  */
 public class MyRaster {
 
+	private final int [] AGG_OPERATORS = {MyRaster.MEAN_AGG,MyRaster.MAX_AGG,MyRaster.MIN_AGG};
 
 	private static final int NO_DATA_FILLER_VALUE_TAG_ID =0xa481;
 	public static final double NO_PIXEL_VALUES = -9999.0;
@@ -163,6 +170,7 @@ public class MyRaster {
 
 		loaded=true;
 	}
+
 
 	public boolean isRGBRaster() {
 		return isRGBRaster;
@@ -658,6 +666,8 @@ public class MyRaster {
 		ymax = boundingSearchRec.getMaxY();
 		
 				 
+		//keep track of integer pixel matrix indices to avoid multiple floating point
+		//operations for efficiency reasons
 		int xminIx = eastingToXIndex(xmin);
 		int xmaxIx = eastingToXIndex(xmax);
 		//y index starts small cause top left pixel is (0,0), and going south (decreasing northing) 
@@ -667,43 +677,24 @@ public class MyRaster {
 		
 		Point2D pt = new Point2D.Double(0,0);
 		
-		//keep track of pixel center
-		//double northing = ymax;
-		//double easting = xmin;
-		//iterate over every point inside this area, ignoring NO_DATA values
-		//we start at top left corner of area (maxy, min x)
-//		for(int northingIx = ymaxIx;northingIx>=yminIx;northingIx--) {
-			
-
-	//		easting = xmin;
-			
-		//	for(int eastingIx = xminIx;eastingIx<=xmaxIx;eastingIx++) {
 		
-		
-		int y=yminIx-1;//y index starts small cause top left pixel is (0,0), and going south (decreasing northing) 
+		int y = yminIx-1;//y index starts small cause top left pixel is (0,0), and going south (decreasing northing) 
 		//means y index increases
 		for(double northing = ymax;northing>=ymin;northing-=pixelSpatialScaleY) {
 			y++;
 			int x = xminIx-1;
 			for(double easting = xmin;easting<=xmax;easting+=pixelSpatialScaleX) {
 				x++;
-				//int x = eastingToXIndex(easting);		
-				//int y = northingToYIndex(northing);
-				
-				
+
 				//non null matrix of  means boundary defined to determine wheat poitn to include in aggregations
 				if(pixelInsideBoundaryFlags != null) {
 					//pixel location falls outside the boundary? 
-					//if(!pixelInsideBoundaryFlags[eastingIx][northingIx]) {
 					if(!pixelInsideBoundaryFlags[x][y]) {
 						
 						continue;
 					}
 				}
-				
-				//keep track of easting coordinate
-				//easting=xmin+ eastingIx*pixelSpatialScaleX;
-				
+
 				boolean insideNeighborhoodFlag = false;
 				if(distMetric == SpatialData.DistanceMetric.INFINITY_NORM) {
 					insideNeighborhoodFlag=true;//by definition, the bounding box is the nieghborhood
@@ -755,17 +746,9 @@ public class MyRaster {
 						throw new IllegalArgumentException("Unknown aggregation operator: "+aggOp);
 					}
 				}// end inside neigborhood
-				
-				
-				//easting+= pixelSpatialScaleX;
-				
-				
+
 			}	//end iterate over X axis
-			
-			//keep track of northing coordinate
-			//northing-= pixelSpatialScaleY;
-			
-			//y++;
+
 		}//end iterate over y axis
 				
 		//there weren't any pixels in neighborhood?
@@ -947,6 +930,171 @@ public class MyRaster {
 	}//end func
 
 
+	/**
+	 * Fuses all data points in a given dataset to raster pixels by taking the aggregation operators on each
+	 * point in the given dataset. The results are appended to the input dataset's attributes 
+	 * @param sourceDS dataset to fuse with pixel values
+	 * @param sep attribute CSV seperator
+	 * @param radius radius of aggregation neighborhoods
+	 * @param distMetric distance metric used to define neighborhoods
+	 * @param preAllocatedRect optional pre-allocated rectangle2d for internal result sotring
+	 * @param pixelValueBuffer an optional pre-allocated buffer to store temporary pixel values for raster with more than one band
+	 */
+	public void fuseAll(SpatialDataset sourceDS,String sep,double radius,SpatialData.DistanceMetric distMetric, Rectangle2D preAllocatedRect,int bandIx,float [] pixelValueBuffer) {
+		
+	
+		Iterator<SpatialData> it = sourceDS.iterator();
+		
+
+		
+		while(it.hasNext()) {
+			SpatialData pt = it.next();
+			Point2D coord = pt.getLocation();
+			
+	
+			//append result to point
+			String attributes = pt.getAttributes();
+			
+			//do all the aggregations
+			for(int aggOp : AGG_OPERATORS) {
+				//perform aggregation for each desired band
+				
+					//perform aggregation around point 
+				double aggRes =  _aggregate(coord,radius,distMetric,bandIx,aggOp,preAllocatedRect,pixelValueBuffer);
+					
+				attributes= attributes+sep + aggRes;
+				
+			}
+			
+			pt.setAttributes(attributes);
+			
+		
+		}
+		
+	} 
+	
+	public void multiThreaded_fuseAll(int numberOfThreads,SpatialDataset sourceDS,String sep,double radius,SpatialData.DistanceMetric distMetric,int bandIx) {
+		
+		//split the dataset by numer of threads
+		
+		if(this.isRGBRaster()) {
+			System.out.println("warning, multithreaded fuasion for RGB imagery not supported. Future feature");
+			numberOfThreads=1;
+		}
+		if (numberOfThreads <=0) {
+			throw new IllegalArgumentException("expected positive number of threads");
+		}
+		
+		
+		if (numberOfThreads ==1) {
+			fuseAll( sourceDS, sep, radius, distMetric,   null,bandIx,null);
+			return;
+		}
+		
+		
+		double division = ((double)sourceDS.size())  / ((double)numberOfThreads);
+		//chunk sizes 
+		int subsetSize = (int)Math.ceil(division);
+		
+		List<SpatialDataset> subsets = sourceDS.split(subsetSize);
+		
+		//have each thread process a subset of poitns (threads will access all the raster pixel in read only fasion)
+		//to seperate the work
+		List<FusionWorker> workers = new ArrayList<FusionWorker>(subsets.size());
+		
+		//create thread for each subset and get the tor un
+		for(int i = 0;i<subsets.size();i++) {
+			SpatialDataset subset = subsets.get(i);
+			FusionWorker worker = new FusionWorker(this,subset, sep, radius, distMetric,  bandIx);
+			workers.add(worker);
+			
+			worker.startFusion();
+			
+		}
+		
+		//wait for all threads to finish fusion
+		for(FusionWorker worker : workers) {
+			
+			//joing with all workis
+			worker.waitForFusion();
+		}
+		
+		Iterator<SpatialData> inputDSIt =  sourceDS.iterator();
+		//make sure to copy over all attributes into original dataset since the split is a deep copy
+		
+		//iterate over every slice
+		for(int i = 0;i<subsets.size();i++) {
+			SpatialDataset subset = subsets.get(i);
+			
+			for(int j = 0;j<subset.size();j++) {
+				
+				//point result from fusion
+				SpatialData outPoint = subset.getSpatialData(j);
+				
+				//point of input dataset to update
+				SpatialData  inPoint = inputDSIt.next();
+				
+				String outputAttributes =outPoint.getAttributes();
+				inPoint.setAttributes(outputAttributes);
+			}
+		}
+		
+	}
 	
 
+	private class FusionWorker implements Runnable{
+		MyRaster myRaster;
+		SpatialDataset sourceDS;
+		String sep;
+		double radius;
+		SpatialData.DistanceMetric distMetric;
+		int bandIx;
+		Rectangle2D preAllocatedRect;
+		float [] pixelValueBuffer;
+		Thread thread;
+		public FusionWorker(MyRaster myRaster,SpatialDataset sourceDS,String sep,double radius,SpatialData.DistanceMetric distMetric,  int bandIx) {
+			this.myRaster = myRaster;
+			this.sourceDS = sourceDS;
+			this.sep = sep;
+			this.distMetric = distMetric;
+			this.preAllocatedRect =new Rectangle2D.Double();// a rectangle for each thread
+			this.bandIx = bandIx;
+			this.pixelValueBuffer = new float[r.getNumBands()];// a pixel ubffer for each thread
+			this.radius = radius;
+			
+			
+			thread = new Thread(this);
+			
+		}
+		public void startFusion() {
+			thread.start();
+		}
+		
+		public void waitForFusion() {
+			try {
+				thread.join();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		public void run() {
+			myRaster.fuseAll( sourceDS, sep, radius, distMetric,   preAllocatedRect,bandIx,pixelValueBuffer);
+			
+		}
+	}
+	
+	
 }
+
+
+
+
+
+
+
+
+
+
+
+
