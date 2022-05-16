@@ -38,7 +38,7 @@ import io.FileHandler;
  */
 public class MyRaster {
 
-	private final int [] AGG_OPERATORS = {MyRaster.MEAN_AGG,MyRaster.MAX_AGG,MyRaster.MIN_AGG};
+	public final int [] AGG_OPERATORS = {MyRaster.MEAN_AGG,MyRaster.MAX_AGG,MyRaster.MIN_AGG};
 
 	private static final int NO_DATA_FILLER_VALUE_TAG_ID =0xa481;
 	public static final double NO_PIXEL_VALUES = -9999.0;
@@ -1059,7 +1059,7 @@ public class MyRaster {
 			this.distMetric = distMetric;
 			this.preAllocatedRect =new Rectangle2D.Double();// a rectangle for each thread
 			this.bandIx = bandIx;
-			this.pixelValueBuffer = new float[r.getNumBands()];// a pixel ubffer for each thread
+			this.pixelValueBuffer = new float[myRaster.getNumBands()];// a pixel ubffer for each thread
 			this.radius = radius;
 			
 			

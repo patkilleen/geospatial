@@ -394,7 +394,7 @@ public class YieldProcessor {
 		String rExecutablePath=args[7];
 		String rasterInfoRScriptPath = args[8];
 		String fieldBoundaryPath = args[9];
-		
+		int numberOfThreads = Integer.parseInt(args[10]);
 		String sep = ",";
 		
 		System.out.println("reading yield data: "+inputCSV);
@@ -412,10 +412,14 @@ public class YieldProcessor {
 
 		
 		MyRaster r = new MyRaster(fieldBoundaryPoly);
-		System.out.println("reading raster: "+inputGeotiff);
+		System.out.print("reading raster: "+inputGeotiff);
+		
+		long startTime =  System.currentTimeMillis();   
 		r.load(rExecutablePath, rasterInfoRScriptPath, inputGeotiff);
-		
-		
+		long endTime =  System.currentTimeMillis();   
+
+		long ellapsedtime = Math.floorDiv(endTime-startTime, 1000);
+		System.out.println("... took approx. "+ellapsedtime+" seconds.");
 		
 		Iterator<SpatialData> it = inputDataset.iterator();
 		
@@ -423,17 +427,7 @@ public class YieldProcessor {
 		
 		int [] aggOperators = {MyRaster.MEAN_AGG,MyRaster.MAX_AGG,MyRaster.MIN_AGG};
 		String [] aggOperatorNames = {"mean","max","min"};
-		/*if(aggOppStr.equals("max")) {
-			aggOpp=MyRaster.MAX_AGG;
-		}else if(aggOppStr.equals("min")) {
-			aggOpp=MyRaster.MIN_AGG;
-		}else if(aggOppStr.equals("mean")) {
-			aggOpp=MyRaster.MEAN_AGG;
-		}else {
-			System.out.println("unsupported aggregation opperator :"+aggOppStr);
-			System.exit(-1);
-		}*/
-		
+
 		int bandFromIx=0;
 		int bandToIx=0;
 		
@@ -442,51 +436,28 @@ public class YieldProcessor {
 			bandToIx=2;
 		}
 		
-		//do we have many bands to process?
-		/*if(bandIxStr.contains("-")) {
-			 int dashIx = bandIxStr.indexOf('-');
-			 bandFromIx = Integer.parseInt(bandIxStr.substring(0, dashIx));
-			 bandToIx = Integer.parseInt(bandIxStr.substring(dashIx+1,bandIxStr.length()));
-		}else {
-			bandFromIx=bandToIx=Integer.parseInt(bandIxStr);
-		}*/
+	
 		
-		System.out.println("fusiong yield data and imagery ");
+		System.out.print("fusiong yield data and imagery ");
 		
-		Rectangle2D preAllocatedRect = new Rectangle2D.Double(); 
-		while(it.hasNext()) {
-			SpatialData pt = it.next();
-			Point2D coord = pt.getLocation();
-			
-			
-			
-			//append result to point
-			String attributes = pt.getAttributes();
-			
-			//do all the aggregations
-			for(int aggOp : aggOperators) {
-				//perform aggregation for each desired band
-				for(int i = bandFromIx;i<=bandToIx;i++) {
-					//perform aggregation around point 
-					double aggRes = r. _aggregate(coord,radius,distMetric,i,aggOp,preAllocatedRect);
-					
-					attributes= attributes+sep + aggRes;
-				}
-			}
-			
-			pt.setAttributes(attributes);
-			
+		Rectangle2D preAllocatedRect = new Rectangle2D.Double();
 		
+		startTime =  System.currentTimeMillis();   
+		for(int bandIx =bandFromIx; bandIx <=bandToIx;bandIx++ ) {
+			r.multiThreaded_fuseAll(numberOfThreads,inputDataset, sep, radius, distMetric, bandIx); 
+			
 		}
-		
+		endTime =  System.currentTimeMillis();
+		ellapsedtime = Math.floorDiv(endTime-startTime, 1000);
+		System.out.println("Fusion took approx. "+ellapsedtime+" seconds.");
 		String header = inputCSVHeader;
 		
 		for(String aggOpName : aggOperatorNames) {
 			header = header+",";
 			if(r.isMSRaster()) {
-				header = header + "MS_" + imageryColName + "_"+aggOpName;
+				header = header + "\"MS_" + imageryColName + "_"+aggOpName+"\"";
 			}else {
-				header = header + "RGB_Red_"+aggOpName+","+ "RGB_Green_"+aggOpName+","+ "RGB_Blue_"+aggOpName;
+				header = header + "\"RGB_Red_"+aggOpName+"\",\""+ "RGB_Green_"+aggOpName+"\",\""+ "RGB_Blue_"+aggOpName+"\"";
 			}
 		}
 		
@@ -512,7 +483,7 @@ public class YieldProcessor {
 		String rExecutablePath=args[6];
 		String rasterInfoRScriptPath = args[7];
 		String fieldBoundaryPath = args[8];
-		
+		int numberOfThreads = Integer.parseInt(args[9]);
 		String sep = ",";
 		
 		System.out.println("reading yield data: "+inputCSV);
@@ -560,8 +531,16 @@ public class YieldProcessor {
 				r = new MyRaster(pixelInsideBoundaryMatrix);//matrix already created will be used to avoid creating it more than once (a lenghty process)
 			}
 			
+			
+			
+			long startTime =  System.currentTimeMillis();   
+			
 			//System.out.println("...processing raster: "+f.getAbsolutePath());
 			r.load(rExecutablePath, rasterInfoRScriptPath, f.getAbsolutePath());
+			long endTime =  System.currentTimeMillis();   
+
+			long ellapsedtime = Math.floorDiv(endTime-startTime, 1000);
+			System.out.println("... took approx. "+ellapsedtime+" seconds.");
 			
 			
 			//first image loaded?
@@ -573,7 +552,7 @@ public class YieldProcessor {
 			
 			//int aggOpp=-1;
 			
-			int [] aggOperators = {MyRaster.MEAN_AGG,MyRaster.MAX_AGG,MyRaster.MIN_AGG};
+			
 			String [] aggOperatorNames = {"mean","max","min"};
 		
 			
@@ -589,40 +568,24 @@ public class YieldProcessor {
 			
 			//System.out.println("fusiong yield data and imagery ");
 			
-			
-			while(it.hasNext()) {
-				SpatialData pt = it.next();
-				Point2D coord = pt.getLocation();
+			startTime =  System.currentTimeMillis();
+			for(int bandIx =bandFromIx; bandIx <=bandToIx;bandIx++ ) {
+				r.multiThreaded_fuseAll(numberOfThreads,inputDataset, sep, radius, distMetric, bandIx); 
 				
-				
-				
-				//append result to point
-				String attributes = pt.getAttributes();
-				
-				//do all the aggregations
-				for(int aggOp : aggOperators) {
-					//perform aggregation for each desired band
-					for(int i = bandFromIx;i<=bandToIx;i++) {
-						//perform aggregation around point 
-						double aggRes = r. _aggregate(coord,radius,distMetric,i,aggOp,preAllocatedRect);
-						
-						attributes= attributes+sep + aggRes;
-					}
-				}
-				
-				pt.setAttributes(attributes);
-				
-			
 			}
+			
+			endTime =  System.currentTimeMillis();
+			ellapsedtime = Math.floorDiv(endTime-startTime, 1000);
+			System.out.println("Fusion took approx. "+ellapsedtime+" seconds.");
 			
 			//use the name of the file as the band name for column band identification, and remove extension
 			String imageryColName = FilenameUtils.removeExtension(f.getName());
 			for(String aggOpName : aggOperatorNames) {
 				header = header+",";
 				if(r.isMSRaster()) {
-					header = header + "MS_" + imageryColName + "_"+aggOpName;
+					header = header + "\"MS_" + imageryColName + "_"+aggOpName+"\"";
 				}else {
-					header = header + "RGB_Red_"+aggOpName+","+ "RGB_Green_"+aggOpName+","+ "RGB_Blue_"+aggOpName;
+					header = header + "\"RGB_Red_"+aggOpName+"\",\""+ "RGB_Green_"+aggOpName+"\",\""+ "RGB_Blue_"+aggOpName+"\"";
 				}
 			}
 			
