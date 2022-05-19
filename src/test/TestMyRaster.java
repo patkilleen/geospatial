@@ -528,6 +528,33 @@ class TestMyRaster {
 	}
 
 
+	@Test
+	void test_aggregation_outside_raster_extent() throws ImageReadException, IOException {
+		MyRaster r = new MyRaster();
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
+
+		float [] pixelValueBuffer = new float[r.getNumBands()];
+		double radius_halfPixelAway = r.getPixelSpatialScaleX()/2.0;
+		double radius_1PixelAway = r.getPixelSpatialScaleX();
+		//double radius_1andHalfPixelAway =radius_1PixelAway +radius_halfPixelAway;
+		double radius_2PixelAway = r.getPixelSpatialScaleX()*2;
+		double radius_3PixelAway = r.getPixelSpatialScaleX()*3;
+
+
+		Rectangle2D bb = r.getBoundingBox();
+		//(28) 28 ...
+		// 28 28 ...
+		// ...
+
+		Assert.assertEquals(MyRaster.NO_PIXEL_VALUES,r.mean(new Point2D.Double(bb.getMinX()-100*radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(MyRaster.NO_PIXEL_VALUES,r.mean(new Point2D.Double(bb.getMinX()-100*radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+
+		Assert.assertEquals(MyRaster.NO_PIXEL_VALUES,r.max(new Point2D.Double(bb.getMinX()-100*radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(MyRaster.NO_PIXEL_VALUES,r.max(new Point2D.Double(bb.getMinX()-100*radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+
+		Assert.assertEquals(MyRaster.NO_PIXEL_VALUES,r.min(new Point2D.Double(bb.getMinX()-100*radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals(MyRaster.NO_PIXEL_VALUES,r.min(new Point2D.Double(bb.getMinX()-100*radius_halfPixelAway,bb.getMaxY()-radius_halfPixelAway), 0, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+	}
 
 	@Test
 	void test_aggregation_with_boundary_() throws ImageReadException, IOException {
