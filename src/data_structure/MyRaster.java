@@ -977,10 +977,10 @@ public class MyRaster {
 		
 		//split the dataset by numer of threads
 		
-		if(this.isRGBRaster()) {
+		/*if(this.isRGBRaster()) {
 			System.out.println("warning, multithreaded fuasion for RGB imagery not supported. Future feature");
 			numberOfThreads=1;
-		}
+		}*/
 		if (numberOfThreads <=0) {
 			throw new IllegalArgumentException("expected positive number of threads");
 		}
