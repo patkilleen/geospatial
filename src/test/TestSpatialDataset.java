@@ -1164,4 +1164,305 @@ class TestSpatialDataset {
 		
 
 	}
+	
+	@Test
+	public void test_partitionToGrid_empty_dataset() {
+
+		SpatialDataset ds = new SpatialDataset(2);
+		List<List<SpatialDataset>> grid = ds.partitionToGrid(4, 4);
+		
+		for(List<SpatialDataset> row : grid) {
+			for(SpatialDataset _ds : row) {
+				Assert.assertEquals(_ds.size(),0);
+			}
+		}
+
+		grid = ds.partitionToGrid(1, 1);
+		for(List<SpatialDataset> row : grid) {
+			for(SpatialDataset _ds : row) {
+				Assert.assertEquals(_ds.size(),0);
+			}
+		}
+		
+		grid = ds.partitionToGrid(100, 100);
+		for(List<SpatialDataset> row : grid) {
+			for(SpatialDataset _ds : row) {
+				Assert.assertEquals(_ds.size(),0);
+			}
+		}
+	}
+	
+	@Test
+	public void test_partitionToGrid_1x1_grid() {
+
+
+		SpatialDataset ds = new SpatialDataset(2);
+
+		ds.addSpatialData(new SpatialData(0,new Point2D.Double(0,0),null));
+		ds.addSpatialData(new SpatialData(1,new Point2D.Double(0,1),null));
+		ds.addSpatialData(new SpatialData(2,new Point2D.Double(0,2),null));
+		ds.addSpatialData(new SpatialData(4,new Point2D.Double(0,3),null));
+
+		
+		List<List<SpatialDataset>> grid = ds.partitionToGrid(1, 1);
+		Assert.assertEquals(grid.size(),1);
+		
+		List<SpatialDataset> row = grid.get(0);
+		Assert.assertEquals(row.size(),1);
+		
+		SpatialDataset actual = row.get(0);
+		
+		Assert.assertEquals(ds.size(),actual.size());
+		
+		for(int i = 0;i<actual.size();i++) {
+			SpatialData ePt = ds.getSpatialData(i);
+			SpatialData aPt = actual.getSpatialData(i);
+			Assert.assertEquals(true,ePt==aPt);
+			
+			
+		}
+	}
+	@Test
+	public void test_partitionToGrid_1() {
+
+		SpatialDataset ds = new SpatialDataset(2);
+
+		ds.addSpatialData(new SpatialData(0,new Point2D.Double(0,0),null));
+		ds.addSpatialData(new SpatialData(1,new Point2D.Double(0,1),null));
+		ds.addSpatialData(new SpatialData(2,new Point2D.Double(0,2),null));
+		ds.addSpatialData(new SpatialData(3,new Point2D.Double(0,3),null));
+		
+		ds.addSpatialData(new SpatialData(4,new Point2D.Double(1,0),null));
+		ds.addSpatialData(new SpatialData(5,new Point2D.Double(1,1),null));
+		ds.addSpatialData(new SpatialData(6,new Point2D.Double(1,2),null));
+		ds.addSpatialData(new SpatialData(7,new Point2D.Double(1,3),null));
+		
+		ds.addSpatialData(new SpatialData(8,new Point2D.Double(2,0),null));
+		ds.addSpatialData(new SpatialData(9,new Point2D.Double(2,1),null));
+		ds.addSpatialData(new SpatialData(10,new Point2D.Double(2,2),null));
+		ds.addSpatialData(new SpatialData(11,new Point2D.Double(2,3),null));
+		
+		ds.addSpatialData(new SpatialData(12,new Point2D.Double(3,0),null));
+		ds.addSpatialData(new SpatialData(13,new Point2D.Double(3,1),null));
+		ds.addSpatialData(new SpatialData(14,new Point2D.Double(3,2),null));
+		ds.addSpatialData(new SpatialData(15,new Point2D.Double(3,3),null));
+		
+		List<List<SpatialDataset>> grid = ds.partitionToGrid(4, 4);
+		Assert.assertEquals(grid.size(),4);
+		
+		for(int i = 0;i<grid.size();i++) {
+			List<SpatialDataset> row = grid.get(i);
+			Assert.assertEquals(row.size(),4);
+			for(int j = 0;j<row.size();j++) {
+				SpatialDataset _ds = row.get(j);
+				Assert.assertEquals("[row,column]: "+i+","+j,1,_ds.size());
+			}
+		}
+		Assert.assertEquals(0,grid.get(0).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(4,grid.get(0).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(8,grid.get(0).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(12,grid.get(0).get(3).getSpatialData(0).getId());
+		
+		Assert.assertEquals(1,grid.get(1).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(5,grid.get(1).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(9,grid.get(1).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(13,grid.get(1).get(3).getSpatialData(0).getId());
+		
+		Assert.assertEquals(2,grid.get(2).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(6,grid.get(2).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(10,grid.get(2).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(14,grid.get(2).get(3).getSpatialData(0).getId());
+		
+		Assert.assertEquals(3,grid.get(3).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(7,grid.get(3).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(11,grid.get(3).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(15,grid.get(3).get(3).getSpatialData(0).getId());
+		
+		
+		
+	}
+	@Test
+	public void test_partitionToGrid_2() {
+
+		SpatialDataset ds = new SpatialDataset(2);
+
+		//boundaries are 0.75 1.5 2.25 3
+		//al in top left cell except the 3 other corners
+		ds.addSpatialData(new SpatialData(0,new Point2D.Double(0,0),null));
+		ds.addSpatialData(new SpatialData(1,new Point2D.Double(0,0.05),null));
+		ds.addSpatialData(new SpatialData(2,new Point2D.Double(0,0.1),null));
+		ds.addSpatialData(new SpatialData(3,new Point2D.Double(0,0.15),null));
+		
+		ds.addSpatialData(new SpatialData(4,new Point2D.Double(0.5,0),null));
+		ds.addSpatialData(new SpatialData(5,new Point2D.Double(0.5,0.5),null));
+		ds.addSpatialData(new SpatialData(6,new Point2D.Double(0.5,0.1),null));
+		ds.addSpatialData(new SpatialData(7,new Point2D.Double(0.5,0.15),null));
+		
+		ds.addSpatialData(new SpatialData(8,new Point2D.Double(0.15,0),null));
+		ds.addSpatialData(new SpatialData(9,new Point2D.Double(0.15,0.5),null));
+		ds.addSpatialData(new SpatialData(10,new Point2D.Double(0.15,0.1),null));
+		ds.addSpatialData(new SpatialData(11,new Point2D.Double(0.15,0.15),null));
+		
+		ds.addSpatialData(new SpatialData(12,new Point2D.Double(3,0),null));
+		ds.addSpatialData(new SpatialData(13,new Point2D.Double(0,3),null));
+		ds.addSpatialData(new SpatialData(14,new Point2D.Double(0.07,0.05),null));
+		ds.addSpatialData(new SpatialData(15,new Point2D.Double(3,3),null));
+		
+		List<List<SpatialDataset>> grid = ds.partitionToGrid(4, 4);
+		Assert.assertEquals(grid.size(),4);
+		
+		for(int i = 0;i<grid.size();i++) {
+			List<SpatialDataset> row = grid.get(i);
+			Assert.assertEquals(row.size(),4);
+			
+		}
+	
+		
+		Assert.assertEquals(13,grid.get(0).get(0).size());
+		Assert.assertEquals(0,grid.get(0).get(1).size());
+		Assert.assertEquals(0,grid.get(0).get(2).size());
+		Assert.assertEquals(1,grid.get(0).get(3).size());
+		
+		Assert.assertEquals(0,grid.get(1).get(0).size());
+		Assert.assertEquals(0,grid.get(1).get(1).size());
+		Assert.assertEquals(0,grid.get(1).get(2).size());
+		Assert.assertEquals(0,grid.get(1).get(3).size());
+		
+		Assert.assertEquals(0,grid.get(2).get(0).size());
+		Assert.assertEquals(0,grid.get(2).get(1).size());
+		Assert.assertEquals(0,grid.get(2).get(2).size());
+		Assert.assertEquals(0,grid.get(2).get(3).size());
+		
+		Assert.assertEquals(1,grid.get(3).get(0).size());
+		Assert.assertEquals(0,grid.get(3).get(1).size());
+		Assert.assertEquals(0,grid.get(3).get(2).size());
+		Assert.assertEquals(1,grid.get(3).get(3).size());
+		
+		
+		
+	}
+	
+	@Test
+	public void test_partitionToGrid_3() {
+
+		SpatialDataset ds = new SpatialDataset(2);
+
+		ds.addSpatialData(new SpatialData(0,new Point2D.Double(0,0),null));
+		ds.addSpatialData(new SpatialData(16,new Point2D.Double(0.5,0.5),null));
+		ds.addSpatialData(new SpatialData(1,new Point2D.Double(0,1),null));
+		ds.addSpatialData(new SpatialData(2,new Point2D.Double(0,2),null));
+		ds.addSpatialData(new SpatialData(3,new Point2D.Double(0,3),null));
+		
+		ds.addSpatialData(new SpatialData(4,new Point2D.Double(1,0),null));
+		ds.addSpatialData(new SpatialData(5,new Point2D.Double(1,1),null));
+		ds.addSpatialData(new SpatialData(6,new Point2D.Double(1,2),null));
+		ds.addSpatialData(new SpatialData(7,new Point2D.Double(1,3),null));
+		
+		ds.addSpatialData(new SpatialData(8,new Point2D.Double(2,0),null));
+		ds.addSpatialData(new SpatialData(9,new Point2D.Double(2,1),null));
+		ds.addSpatialData(new SpatialData(10,new Point2D.Double(2,2),null));
+		ds.addSpatialData(new SpatialData(11,new Point2D.Double(2,3),null));
+		
+		ds.addSpatialData(new SpatialData(12,new Point2D.Double(3,0),null));
+		ds.addSpatialData(new SpatialData(13,new Point2D.Double(3,1),null));
+		ds.addSpatialData(new SpatialData(14,new Point2D.Double(3,2),null));
+		ds.addSpatialData(new SpatialData(15,new Point2D.Double(3,3),null));
+		
+		List<List<SpatialDataset>> grid = ds.partitionToGrid(4, 4);
+		Assert.assertEquals(grid.size(),4);
+		
+		for(int i = 0;i<grid.size();i++) {
+			List<SpatialDataset> row = grid.get(i);
+			Assert.assertEquals(row.size(),4);			
+		}
+		Assert.assertEquals(0,grid.get(0).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(16,grid.get(0).get(0).getSpatialData(1).getId());
+		Assert.assertEquals(4,grid.get(0).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(8,grid.get(0).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(12,grid.get(0).get(3).getSpatialData(0).getId());
+		
+		Assert.assertEquals(1,grid.get(1).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(5,grid.get(1).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(9,grid.get(1).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(13,grid.get(1).get(3).getSpatialData(0).getId());
+		
+		Assert.assertEquals(2,grid.get(2).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(6,grid.get(2).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(10,grid.get(2).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(14,grid.get(2).get(3).getSpatialData(0).getId());
+		
+		Assert.assertEquals(3,grid.get(3).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(7,grid.get(3).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(11,grid.get(3).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(15,grid.get(3).get(3).getSpatialData(0).getId());
+		
+		
+		ds.addSpatialData(new SpatialData(17,new Point2D.Double(1.2,0),null));
+		
+		grid = ds.partitionToGrid(4, 4);
+		Assert.assertEquals(grid.size(),4);
+		
+		for(int i = 0;i<grid.size();i++) {
+			List<SpatialDataset> row = grid.get(i);
+			Assert.assertEquals(row.size(),4);			
+		}
+		Assert.assertEquals(0,grid.get(0).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(16,grid.get(0).get(0).getSpatialData(1).getId());
+		Assert.assertEquals(4,grid.get(0).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(17,grid.get(0).get(1).getSpatialData(1).getId());
+		Assert.assertEquals(8,grid.get(0).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(12,grid.get(0).get(3).getSpatialData(0).getId());
+		
+		Assert.assertEquals(1,grid.get(1).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(5,grid.get(1).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(9,grid.get(1).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(13,grid.get(1).get(3).getSpatialData(0).getId());
+		
+		Assert.assertEquals(2,grid.get(2).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(6,grid.get(2).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(10,grid.get(2).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(14,grid.get(2).get(3).getSpatialData(0).getId());
+		
+		Assert.assertEquals(3,grid.get(3).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(7,grid.get(3).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(11,grid.get(3).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(15,grid.get(3).get(3).getSpatialData(0).getId());
+		
+		
+		ds.addSpatialData(new SpatialData(18,new Point2D.Double(2.1,2),null));
+	
+		
+		grid = ds.partitionToGrid(4, 4);
+		Assert.assertEquals(grid.size(),4);
+		
+		for(int i = 0;i<grid.size();i++) {
+			List<SpatialDataset> row = grid.get(i);
+			Assert.assertEquals(row.size(),4);			
+		}
+		Assert.assertEquals(0,grid.get(0).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(16,grid.get(0).get(0).getSpatialData(1).getId());
+		Assert.assertEquals(4,grid.get(0).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(17,grid.get(0).get(1).getSpatialData(1).getId());
+		Assert.assertEquals(8,grid.get(0).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(12,grid.get(0).get(3).getSpatialData(0).getId());
+		
+		Assert.assertEquals(1,grid.get(1).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(5,grid.get(1).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(9,grid.get(1).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(13,grid.get(1).get(3).getSpatialData(0).getId());
+		
+		Assert.assertEquals(2,grid.get(2).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(6,grid.get(2).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(10,grid.get(2).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(18,grid.get(2).get(2).getSpatialData(1).getId());
+		Assert.assertEquals(14,grid.get(2).get(3).getSpatialData(0).getId());
+		
+		Assert.assertEquals(3,grid.get(3).get(0).getSpatialData(0).getId());
+		Assert.assertEquals(7,grid.get(3).get(1).getSpatialData(0).getId());
+		Assert.assertEquals(11,grid.get(3).get(2).getSpatialData(0).getId());
+		Assert.assertEquals(15,grid.get(3).get(3).getSpatialData(0).getId());
+		
+		
+	}
+	
 }

@@ -1,6 +1,7 @@
 package data_structure;
 
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -17,7 +18,29 @@ public class SpatialDataset {
 	public SpatialDataset(int capacity) {
 		data = new ArrayList<SpatialData>(capacity);
 	}
-	
+	/**
+	 * Creates a copy of a spatial dataset (SpatialData references are shared) 
+	 * @param ds
+	 */
+	public SpatialDataset(SpatialDataset ds) {
+		
+		
+		if(ds == null) {
+			throw new NullPointerException("Cannot build a SpatialDataset copy from a null dataset");
+		}
+		
+		data = new ArrayList<SpatialData>(ds.size());
+		
+		
+		Iterator<SpatialData> it = ds.iterator();
+		
+		while(it.hasNext()) {
+			SpatialData pt = it.next();
+			data.add(pt);
+		}
+		
+		
+	}
 	public void addSpatialData(SpatialData datum){
 		
 		if(datum == null) {
@@ -94,14 +117,7 @@ public class SpatialDataset {
 		
 		//easy case where the subset is this dataset itself (make deep copy, a new list)
 		if(desiredSubsetSize==this.size()) {
-			SpatialDataset copy = new SpatialDataset(this.size());
-			
-			Iterator<SpatialData> it = this.iterator();
-			
-			while(it.hasNext()) {
-				SpatialData pt = it.next();
-				copy.addSpatialData(pt);
-			}
+			SpatialDataset copy = new SpatialDataset(this);
 			
 			res.add(copy);
 			
@@ -400,5 +416,150 @@ public class SpatialDataset {
 		
 		return res;
 		
+	}
+	
+	/**
+	 * Partitions this dataset into a grid/tile-map by defining the grid by splitting
+	 * the  bounding box of this dataset into equally-sized cells (cell widths aren't necessarily equal to cell height). Data points that fall 
+	 * within a cell's area will be placed in the cell's respective dataset. Cells' datsets may be empty
+	 * if no points fall within the area.   
+	 * @param nrow number of rows to split the dataset into
+	 * @param ncol number of columns to split the dataset into
+	 * @return a matrix of spatial datasets, where each dataset represents a cell
+	 */
+	public List<List<SpatialDataset>> partitionToGrid(int nrow,int ncol){
+		if(nrow <= 0) {
+			throw new IllegalArgumentException("Cannot partition a SpatialDatset into a grid with a non-positive number of rows "+nrow);
+		}
+		if(ncol <= 0) {
+			throw new IllegalArgumentException("Cannot partition a SpatialDatset into a grid with a non-positive number of columns "+ncol);
+		}
+		
+		List<List<SpatialDataset>> grid = new ArrayList<List<SpatialDataset>>(nrow);
+		
+		
+		//special case where the dataset's grid is simply itsefl (a 1x1 grid)?
+		if ((nrow == 1) && (ncol == 1)) {
+			List<SpatialDataset> singleRow = new ArrayList<SpatialDataset>(ncol);
+			SpatialDataset singleCell = new SpatialDataset(this);//make a copy of this dataset
+			singleRow.add(singleCell);
+			grid.add(singleRow);
+			
+		}else {
+			int totalNumCells = nrow*ncol;
+			//assuming the dataset is evenly distributed in space, cell will be apprximoated as follws (all cells having same number poitns)
+			//an estimateion of how many points will be in cell
+			int estimatedCellSize = Math.floorDiv(this.size(),totalNumCells);
+			
+			//create the empty cells
+			for(int i = 0;i <nrow;i++) {
+				List<SpatialDataset> row = new ArrayList<SpatialDataset>(ncol);
+				for(int j = 0;j <ncol;j++) {
+					SpatialDataset cell = new SpatialDataset(estimatedCellSize);
+					row.add(cell);
+				}
+				grid.add(row);
+			}
+		
+		
+	
+			//non-empty dataset?
+			if(this.size()!=0) {
+			
+				//crate a matrix of bounding boxes representing the cells' bounding boxes
+				//we rectangle2d to use the insideness definition to avoid including  a point
+				//in 2 cells due to falling exactly on cell borders
+				BoundingBox gridBB = this.computeBoundingBox();
+				Point2D maxCoords = gridBB.getMaxCoords();
+				Point2D minCoords = gridBB.getMinCoords();
+				double gridWidth = maxCoords.getX() -minCoords.getX();
+				double gridHeight = maxCoords.getY() -minCoords.getY();
+				double cellWidth = gridWidth/((double)ncol);
+				double cellHeight = gridHeight/((double)nrow);
+				List<List<Rectangle2D>> boundingBoxes = new ArrayList<List<Rectangle2D>>(nrow);
+				final double epsilon = 0.01;
+				//Rectangle2D rec = new Rectangle2D.Double(xmin, ymin, xmax - xmin, ymax - ymin);
+				for(int i = 0;i <nrow;i++) {
+					List<Rectangle2D> bbRow = new ArrayList<Rectangle2D>(ncol);
+					
+					for(int j = 0;j <ncol;j++) {
+						double xCoord =minCoords.getX()+ j*cellWidth;
+						double yCoord =minCoords.getY()+ i*cellHeight;
+						
+						double _recWidth=cellWidth;
+						double _recHeight=cellHeight;
+						
+						//last row?
+						if(i == nrow -1) {
+							////make to to include points on the bottom most extremity of grid
+							//that would otherwise be exluded by definition of insideness of Rect2D
+							//by adding small height increase to make point not on bottom border
+							_recHeight+=epsilon;
+						}
+						
+						//last column?
+						if(j == ncol -1) {
+							////make to to include points on the right most extremity of grid
+							//that would otherwise be exluded by definition of insideness of Rect2D
+							//by adding small height increase to make point not on right border
+							_recWidth+=epsilon;
+						}
+						
+						Rectangle2D rec= new Rectangle2D.Double(xCoord, yCoord, _recWidth, _recHeight);
+						bbRow.add(rec);
+					}
+					boundingBoxes.add(bbRow);
+				}
+				
+				
+				//iteratere every point to see if they fall in this bounding box
+				Iterator<SpatialData> it = this.iterator();
+				boolean unallocatedPt = true;
+				while(it.hasNext()) {
+					unallocatedPt = true;
+					SpatialData pt = it.next();
+					Point2D coord = pt.getLocation();
+					//populate the cells by iterating over each bounding box and every point and assinging point to correct cell
+					for(int i = 0;i <nrow && unallocatedPt;i++) {
+						List<Rectangle2D> bbRow = boundingBoxes.get(i);
+						List<SpatialDataset> gridRow =grid.get(i);
+						for(int j = 0;j <ncol && unallocatedPt;j++) {
+							Rectangle2D bb = bbRow.get(j);
+							SpatialDataset cell =gridRow.get(j);
+							
+								
+								
+								//point inside the bounding box?
+								if(bb.contains(coord)) {
+									
+									//add it to the cell
+									cell.addSpatialData(pt);
+									unallocatedPt=false;
+									break;
+								}
+							/*	}else if(j ==(ncol-1)) { //last column?
+									//make to to include points on the right most extremity of grid
+									//that would otherwise be exluded by definition of insideness of Rect2D
+									if(coord.getX()==maxCoords.getX()) {
+										cell.addSpatialData(pt);
+										unallocatedPt=false;
+										break;
+									}
+								}else if(i ==(nrow-1)) { //last row?
+									//make to to include points on the bottom most extremity of grid
+									//that would otherwise be exluded by definition of insideness of Rect2D
+									if(coord.getY()==maxCoords.getY()) {
+										cell.addSpatialData(pt);
+										unallocatedPt=false;
+										break;
+									}
+								}*/
+							
+						}//end iterate grid columns
+					}//end iterate grid rows 
+				}//end iterate evey point
+			}//end if non-empty datset
+		}//end if special case of one cell (this dataset)
+		return grid;
 	}
 }
