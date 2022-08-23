@@ -1,8 +1,7 @@
 package test;
 
-import static org.junit.jupiter.api.Assertions.fail;
-
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
@@ -157,6 +156,141 @@ class TestBoundingBox {
 		Assert.assertEquals(true,exceptionOccured);
 	}
 
+
+	@Test
+	void test_contains_Rectangle2D() {
+		BoundingBox res = new BoundingBox(0,0,10,20);//10 x 20 rectangl;e
+		
+		
+		
+		//contains itself
+		Rectangle2D rect = new Rectangle2D.Double(0, 0, 10 - 0, 20 - 0);
+		Assert.assertEquals("contains itself",true,res.contains(rect));
+		
+		//contains smaller rectangle
+		rect = new Rectangle2D.Double(0, 0, 9 - 0, 19 - 0);
+		Assert.assertEquals("contains smaller rectangle",true,res.contains(rect));
+		
+		
+		//contains much smaller rectangle
+		rect = new Rectangle2D.Double(5, 5, 7 - 5, 9 - 5);
+		Assert.assertEquals("contains much smaller ractangle ",true,res.contains(rect));
+		
+		//doesn't contain partial overlapping rectangle
+		rect = new Rectangle2D.Double(-5, -5, 7 - (-5), 9 - (-5));
+		Assert.assertEquals("doesn't contain partial overlapping rectangle",false,res.contains(rect));
+		
+		
+		//doesn't contain partial overlapping rectangle
+		rect = new Rectangle2D.Double(0, 0, 11-0, 20-0);
+		Assert.assertEquals("doesn't contain partial overlapping rectangle",false,res.contains(rect));
+		
+		//doesn't contain partial overlapping rectangle
+		rect = new Rectangle2D.Double(0, 0, 10-0, 21-0);
+		Assert.assertEquals("doesn't contain partial overlapping rectangle",false,res.contains(rect));
+		
+		//doesn't contain partial overlapping rectangle
+		rect = new Rectangle2D.Double(0, 0, 11-0, 21-0);
+		Assert.assertEquals("doesn't contain partial overlapping rectangle",false,res.contains(rect));
+		
+		
+
+		//doesn't contain non overlapping rectangle
+		rect = new Rectangle2D.Double(100, 100, 115-100, 120-100);
+		Assert.assertEquals("doesn't contain partial overlapping rectangle",false,res.contains(rect));
+		
+		
+
+		//doesn't contain non overlapping rectangle
+		rect = new Rectangle2D.Double(-100, -100, -115-(-100), -120-(-100));
+		Assert.assertEquals("doesn't contain partial overlapping rectangle",false,res.contains(rect));
+		
+	}
+	
+	@Test
+	void test_contains_Point2D() {
+		
+		
+		BoundingBox res = new BoundingBox(0,0,10,20);//10 x 20 rectangl;e
+		
+		//center ish
+		Point2D pt = new Point2D.Double(5,5);
+		Assert.assertEquals(true,res.contains(pt));
+		
+		//borders
+		pt = new Point2D.Double(0,0);
+		Assert.assertEquals(true,res.contains(pt));
+		pt = new Point2D.Double(10,0);
+		Assert.assertEquals(true,res.contains(pt));
+		pt = new Point2D.Double(10,20);
+		Assert.assertEquals(true,res.contains(pt));
+		pt = new Point2D.Double(0,20);
+		Assert.assertEquals(true,res.contains(pt));
+		
+		//outside
+		pt = new Point2D.Double(-5,-10);
+		Assert.assertEquals(false,res.contains(pt));
+		pt = new Point2D.Double(-5,10);
+		Assert.assertEquals(false,res.contains(pt));
+		pt = new Point2D.Double(5,-10);
+		Assert.assertEquals(false,res.contains(pt));
+		pt = new Point2D.Double(100,100);
+		Assert.assertEquals(false,res.contains(pt));
+		
+	}
+	
+	@Test
+	void test_isContainedBy() {
+		BoundingBox res = new BoundingBox(0,0,10,20);//10 x 20 rectangl;e
+		
+		
+		
+		//contain within itself
+		Rectangle2D rect = new Rectangle2D.Double(0, 0, 10 - 0, 20 - 0);
+		Assert.assertEquals(true,res.isContainedBy(rect));
+		
+		
+		//contained by bigger rec
+		rect = new Rectangle2D.Double(0, 0, 20 - 0, 30 - 0);
+		Assert.assertEquals(true,res.isContainedBy(rect));
+		
+		rect = new Rectangle2D.Double(-10, -10, 20 - (-10), 30 - (-10));
+		Assert.assertEquals(true,res.isContainedBy(rect));
+		
+		rect = new Rectangle2D.Double(0, 0, 10 - 0, 25 - 0);
+		Assert.assertEquals(true,res.isContainedBy(rect));
+		
+		rect = new Rectangle2D.Double(0, 0, 11 - 0, 20 - 0);
+		Assert.assertEquals(true,res.isContainedBy(rect));
+		
+		rect = new Rectangle2D.Double(-1, 0, 10 - (-1), 20 - 0);
+		Assert.assertEquals(true,res.isContainedBy(rect));
+		
+		rect = new Rectangle2D.Double(0, -1, 10 - 0, 20 - (-1));
+		Assert.assertEquals(true,res.isContainedBy(rect));
+		
+		rect = new Rectangle2D.Double(-1, -1, 10 - (-1), 20 - (-1));
+		Assert.assertEquals(true,res.isContainedBy(rect));
+		
+		
+		//not contained by partial
+		rect = new Rectangle2D.Double(0, 0, 5 - 0, 20 - 0);
+		Assert.assertEquals(false,res.isContainedBy(rect));
+		rect = new Rectangle2D.Double(0, 0, 10 - 0, 15 - 0);
+		Assert.assertEquals(false,res.isContainedBy(rect));
+		rect = new Rectangle2D.Double(5, 0, 10 - 5, 20 - 0);
+		Assert.assertEquals(false,res.isContainedBy(rect));
+		rect = new Rectangle2D.Double(0, 5, 10 - 0, 20 - 5);
+		Assert.assertEquals(false,res.isContainedBy(rect));
+		rect = new Rectangle2D.Double(5, 5, 10 - 5, 20 - 5);
+		Assert.assertEquals(false,res.isContainedBy(rect));
+		
+		//not contained full
+		rect = new Rectangle2D.Double(5, 5, 5 - 5, 10 - 5);
+		Assert.assertEquals(false,res.isContainedBy(rect));
+		
+	}
+	
 	@Test
 	void testGetMinCoords() {
 		BoundingBox res = new BoundingBox(4,5,6,7);

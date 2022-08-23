@@ -12,13 +12,13 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.imaging.ImageReadException;
 import org.apache.commons.io.FilenameUtils;
 
+import data_structure.BoundingBox;
 import data_structure.MyRaster;
 import data_structure.Polygon2D;
 import data_structure.SpatialData;
@@ -465,6 +465,144 @@ public class YieldProcessor {
 		FileHandler.writeSpatialDatasetToFile(outputCSV,header, inputDataset,true,",",false);
 		
 
+		
+		
+	}else if(operation.equals("-multi-image-fusion")) {//fuse yield with many smaller  GeoTIFFs tiles of a larger GeoTIff (they won't share the same extent)
+		
+		String inputCSV =args[1];
+		String outputCSV = args[2];
+		String inputGeotiffDir =args[3]; //directory where all the Big GeoTIFFs tiles are 
+		String imageryColName =args[4];//only required for MS data as we don't know what band it is. name of bnad column		
+		double radius =Double.parseDouble(args[5]);		
+		SpatialData.DistanceMetric distMetric =SpatialData.DistanceMetric.valueOf(args[6]);
+		//String aggOppStr =args[7];
+		String rExecutablePath=args[7];
+		String rasterInfoRScriptPath = args[8];
+		String fieldBoundaryPath = args[9];
+		int numberOfThreads = Integer.parseInt(args[10]);
+		//int inputCSVRowSplitNum =Integer.parseInt(args[11]);//number of rows to split the input CSV datsaet into
+		//int inputCSVColSplitNum =Integer.parseInt(args[12]);//number of columsn to split the input CSV datsaet into
+		
+		String sep = ",";
+		
+		
+		System.out.println("reading yield data: "+inputCSV);
+		
+		SpatialDataset _inputDataset = FileHandler.readCSVIntoSpatialDataset(inputCSV,null,sep);
+		SpatialDataIndex index = new SpatialDataIndex(_inputDataset);
+		
+		//used to store results of index lookup for yield sbuareas
+		SpatialDataset _inputDatasetBuffer = new SpatialDataset(_inputDataset.size()); 
+		
+		SpatialDataset outputDataset = new SpatialDataset(_inputDataset.size());
+		
+		
+		String inputCSVHeader = FileHandler.readCSVHeader(inputCSV);
+
+		
+		//
+		String header = inputCSVHeader;
+		boolean computedHeader=false;
+		
+		//read boundary file
+		SpatialDataset boundaryPts = FileHandler.readCSVIntoSpatialDataset(fieldBoundaryPath, null, sep);
+		
+		//convert field boundary to polygon 2d (used to avoid including raster pixels outside the field)
+		Polygon2D fieldBoundaryPoly =boundaryPts.toPolygon2D();
+
+		
+		
+		
+		//all the input GeoTIFFs in  directory specified by inputGeotiffDir
+		File[] inputTiffs = FileHandler.getFilesInDirectory(inputGeotiffDir, ".tif");
+		
+		//the list of bounding boxes of yield points already process
+		List<BoundingBox> bbBlackList = new ArrayList<BoundingBox>(inputTiffs.length);
+		
+		//iterate over every tiff and load them individually into memory for fusion
+		//the GeoTiffs are assumed to fully contain the bounding box of each cell in
+		//the grid of the inputCSV that was split (exactly one geotiff will contain the cell) 
+		for(File inputTiffFile :inputTiffs) {
+			MyRaster r = new MyRaster(fieldBoundaryPoly);
+			String inputTiff = inputTiffFile.getAbsolutePath();
+			System.out.print("reading raster: "+inputTiff);
+			
+			long startTime =  System.currentTimeMillis();   
+			r.load(rExecutablePath, rasterInfoRScriptPath, inputTiff);
+			long endTime =  System.currentTimeMillis();   
+	
+			long ellapsedtime = Math.floorDiv(endTime-startTime, 1000);
+			System.out.println("... took approx. "+ellapsedtime+" seconds.");
+			
+			Rectangle2D rasterBB = r.getBoundingBox();
+			
+			//this blackbox raster will have margin's trimmed to not fused yiel at very edge of image (-2 * radisu to make sure yield  in fusion be in it))
+			BoundingBox _rasterBB=new BoundingBox(rasterBB.getMinX()+(radius*2),rasterBB.getMinY()+(radius*2),rasterBB.getMaxX()-(2*radius),rasterBB.getMaxY()-(2*radius));
+			
+			//lookup all yield points inside the raster via the index (exlcude those already processed)
+			 index.__getSpatialDataInBoundingBox(_rasterBB, _inputDatasetBuffer, bbBlackList);
+			 
+			 //take note of area already processed
+			 bbBlackList.add(_rasterBB);
+			 
+			//avoid including the cell twice in fusion
+			
+
+			
+			
+//			Iterator<SpatialData> it = targetCell.iterator();
+//			
+			//int aggOpp=-1;
+			
+			//int [] aggOperators = {MyRaster.MEAN_AGG,MyRaster.MAX_AGG,MyRaster.MIN_AGG};
+			String [] aggOperatorNames = {"mean","max","min"};
+	
+			int bandFromIx=0;
+			int bandToIx=0;
+			
+			if(r.isRGBRaster()) {
+				bandFromIx=0;
+				bandToIx=2;
+			}
+			
+			if(!computedHeader) {
+
+				for(String aggOpName : aggOperatorNames) {
+					header = header+",";
+					if(r.isMSRaster()) {
+						header = header + "\"MS_" + imageryColName + "_"+aggOpName+"\"";
+					}else {
+						header = header + "\"RGB_Red_"+aggOpName+"\",\""+ "RGB_Green_"+aggOpName+"\",\""+ "RGB_Blue_"+aggOpName+"\"";
+					}
+				}
+				computedHeader=true;
+			}
+			
+			System.out.print("fusiong yield data and imagery ");
+			
+			Rectangle2D preAllocatedRect = new Rectangle2D.Double();
+			
+			startTime =  System.currentTimeMillis();   
+			for(int bandIx =bandFromIx; bandIx <=bandToIx;bandIx++ ) {
+				r.multiThreaded_fuseAll(numberOfThreads,_inputDatasetBuffer, sep, radius, distMetric, bandIx); 
+				
+			}
+			endTime =  System.currentTimeMillis();
+			ellapsedtime = Math.floorDiv(endTime-startTime, 1000);
+			System.out.println("Fusion took approx. "+ellapsedtime+" seconds.");
+			
+			
+			//append the result to final dataset
+			for(int i = 0;i <_inputDatasetBuffer.size();i++) {
+				SpatialData _pt= _inputDatasetBuffer.getSpatialData(i);
+				outputDataset.addSpatialData(_pt);
+			}
+			
+			_inputDatasetBuffer.clear();
+			System.out.println("writing fusion results to "+outputCSV);
+			
+		}//end iterate each tiff to read and fuse
+		FileHandler.writeSpatialDatasetToFile(outputCSV,header, outputDataset,true,",",false);
 		
 	
 	}else if(operation.equals("-imagery-fusion-direction-of-images")) {//fuse yield with all GeoTIFF imagery in a directory

@@ -3,6 +3,7 @@ package data_structure;
 import java.awt.geom.Point2D;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 public class SpatialDataIndex {
@@ -303,6 +304,18 @@ public class SpatialDataIndex {
 	 * @param resultBuffer buffer to be used to avoid reallocating buffers if uneccessary  
 	 */
 	public void _getSpatialDataInBoundingBox(BoundingBox bb, SpatialDataset resultBuffer){
+		__getSpatialDataInBoundingBox(bb,resultBuffer,null);//null for no black list. all points considered
+	}
+	
+	/**
+	 * Fetch all points found inside given bounding box using an efficient search and puts it into results buffer
+	 * @param min minimum coordinates of bounding box
+	 * @param max maximum coordinates of bounding box
+	 * @param resultBuffer buffer to be used to avoid reallocating buffers if uneccessary  
+	 * @param exclusionAreas areas represented as bounding boxes where points in the dataset are ignored if they fall inside these area. Null or empty list means no exclusion (it behaves exactly like _getSpatialDataInBoundingBox in this case)
+	 */
+	public void __getSpatialDataInBoundingBox(BoundingBox bb, SpatialDataset resultBuffer, List<BoundingBox> exclusionAreas){
+
 		
 		if(bb == null) {
 			throw new IllegalArgumentException("cannot fetch data points in null boudning box");
@@ -358,7 +371,32 @@ public class SpatialDataIndex {
 		while(keyit.hasNext()){
 			SpatialData datumInBoundary = keyit.next();
 			
-			resultBuffer.addSpatialData(datumInBoundary);
+			//the areas to exclude points don't exist?
+			if(exclusionAreas== null || exclusionAreas.size() ==0) {
+				//add it unconditionally
+				resultBuffer.addSpatialData(datumInBoundary);
+			}else {
+				
+				boolean blacklisted=false;
+				//we must make sure the point doesn't fall into any of the blacklist areas
+				for(BoundingBox blackListedBB : exclusionAreas) {
+					
+					//point in a blacklisted area?
+					if ((blackListedBB != null) && (blackListedBB.contains(datumInBoundary.getLocation()))) {
+						blacklisted=true;
+						break;
+					}
+				}
+				
+				//only add the point if it wasn't in a blacklisted area
+				if(!blacklisted) {
+					
+					resultBuffer.addSpatialData(datumInBoundary);
+				}
+				
+				
+			}//end check for blackist areas
+			
 		}
 		
 		

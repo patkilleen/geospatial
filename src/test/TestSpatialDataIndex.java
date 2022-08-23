@@ -1,8 +1,9 @@
 package test;
 
 import java.awt.geom.Point2D;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
@@ -99,6 +100,277 @@ class TestSpatialDataIndex {
 		
 	
 	}
+	@Test
+	void testgetSpatialDataInRange_blacklist_top_left_exclude() {
+		SpatialDataset ds = buildTestDataset();
+		
+
+		SpatialDataIndex si = new SpatialDataIndex(ds);
+		
+		
+		
+		
+		
+		BoundingBox topLeft = new BoundingBox(-5, 5, 5, 9);
+		
+		
+		Point2D maxCoords = ds.findMaxCoordinates();
+		Point2D minCoords = ds.findMinCoordinates();
+		
+		//max max x be 0, so all points with more than 0 x excluded
+		maxCoords.setLocation(0, maxCoords.getY());
+		
+		SpatialDataset res = new SpatialDataset();
+		List<BoundingBox> blackList = new ArrayList<BoundingBox>();
+		blackList.add(topLeft);
+		si.__getSpatialDataInBoundingBox(new BoundingBox(minCoords, maxCoords),res,blackList);
+		
+		SpatialDataset expected = new SpatialDataset(ds.size());
+		
+		//dynamically populate expected points
+		for(int i = 0;i<ds.size();i++) {
+			SpatialData pt1 = ds.getSpatialData(i);
+		
+			//only add bottom left points to expected set
+			if((pt1.getLocation().getX() <=0) && (pt1.getLocation().getY() <=0)) {
+				expected.addSpatialData(pt1);
+			}
+		}
+		
+		Assert.assertEquals(expected.size(), res.size());
+		//make sure all points in expected are in results
+		
+		for(int i = 0;i <expected.size();i++) {
+			SpatialData ept = expected.getSpatialData(i);
+			boolean pointFound=false;
+			for(int j= 0;j <res.size();j++) {
+				SpatialData apt = res.getSpatialData(j);
+				
+				if(apt == ept) {
+					pointFound=true;
+					break;
+				}
+			}
+			if(!pointFound) {
+				Assert.fail("expected to find point "+ept+ " but it wasn't in dataset after index search with blacklist");
+			}
+		}
+	
+	}
+	
+	
+	@Test
+	void testgetSpatialDataInRange_blacklist_top_left_exclude_multi_area() {
+		SpatialDataset ds = buildTestDataset();
+		
+
+		SpatialDataIndex si = new SpatialDataIndex(ds);
+		
+		
+		
+		
+		
+		BoundingBox topLeft1 = new BoundingBox(-5, 5, -3, 9);
+		BoundingBox topLeft2 = new BoundingBox(-3, 5, -1, 9);
+		
+		
+		Point2D maxCoords = ds.findMaxCoordinates();
+		Point2D minCoords = ds.findMinCoordinates();
+		
+		//max max x be 0, so all points with more than 0 x excluded
+		maxCoords.setLocation(0, maxCoords.getY());
+		
+		SpatialDataset res = new SpatialDataset();
+		List<BoundingBox> blackList = new ArrayList<BoundingBox>();
+		blackList.add(topLeft1);
+		blackList.add(topLeft2);
+		si.__getSpatialDataInBoundingBox(new BoundingBox(minCoords, maxCoords),res,blackList);
+		
+		SpatialDataset expected = new SpatialDataset(ds.size());
+		
+		//dynamically populate expected points
+		for(int i = 0;i<ds.size();i++) {
+			SpatialData pt1 = ds.getSpatialData(i);
+		
+			//only add bottom left points to expected set
+			if((pt1.getLocation().getX() <=0) && (pt1.getLocation().getY() <=0)) {
+				expected.addSpatialData(pt1);
+			}
+		}
+		
+		Assert.assertEquals(expected.size(), res.size());
+		//make sure all points in expected are in results
+		
+		for(int i = 0;i <expected.size();i++) {
+			SpatialData ept = expected.getSpatialData(i);
+			boolean pointFound=false;
+			for(int j= 0;j <res.size();j++) {
+				SpatialData apt = res.getSpatialData(j);
+				
+				if(apt == ept) {
+					pointFound=true;
+					break;
+				}
+			}
+			if(!pointFound) {
+				Assert.fail("expected to find point "+ept+ " but it wasn't in dataset after index search with blacklist");
+			}
+		}
+	
+	}
+	
+	@Test
+	void testgetSpatialDataInRange_blacklist_bot_left_exclude() {
+		SpatialDataset ds = buildTestDataset();
+		
+
+		SpatialDataIndex si = new SpatialDataIndex(ds);
+		
+		
+		
+		
+		
+		//
+		BoundingBox botLeft = new BoundingBox(-5, -6,0, 0);
+		
+		
+		Point2D maxCoords = ds.findMaxCoordinates();
+		Point2D minCoords = ds.findMinCoordinates();
+		
+		//max max x be 0, so all points with more than 0 x excluded
+		maxCoords.setLocation(0, maxCoords.getY());
+		
+		SpatialDataset res = new SpatialDataset();
+		List<BoundingBox> blackList = new ArrayList<BoundingBox>();
+		blackList.add(botLeft);
+		si.__getSpatialDataInBoundingBox(new BoundingBox(minCoords, maxCoords),res,blackList);
+		
+		SpatialDataset expected = new SpatialDataset(ds.size());
+		
+		//dynamically populate expected points
+		for(int i = 0;i<ds.size();i++) {
+			SpatialData pt1 = ds.getSpatialData(i);
+		
+			//only add bottom left points to expected set
+			if((pt1.getLocation().getX() <=0) && (pt1.getLocation().getY() >=2)) {
+				expected.addSpatialData(pt1);
+			}
+		}
+		
+		Assert.assertEquals(expected.size(), res.size());
+		//make sure all points in expected are in results
+		
+		for(int i = 0;i <expected.size();i++) {
+			SpatialData ept = expected.getSpatialData(i);
+			boolean pointFound=false;
+			for(int j= 0;j <res.size();j++) {
+				SpatialData apt = res.getSpatialData(j);
+				
+				if(apt == ept) {
+					pointFound=true;
+					break;
+				}
+			}
+			if(!pointFound) {
+				Assert.fail("expected to find point "+ept+ " but it wasn't in dataset after index search with blacklist");
+			}
+		}
+	
+	}
+	
+	@Test
+	void testgetSpatialDataInRange_blacklist_bot_left_exclude_multi_area() {
+		SpatialDataset ds = buildTestDataset();
+		
+
+		SpatialDataIndex si = new SpatialDataIndex(ds);
+		
+		
+		
+		
+		
+		//
+		BoundingBox botLeft1 = new BoundingBox(-5, -6,-3,-3);
+		BoundingBox botLeft2 = new BoundingBox(-3,-5,0,0);
+		
+		
+		Point2D maxCoords = ds.findMaxCoordinates();
+		Point2D minCoords = ds.findMinCoordinates();
+		
+		//max max x be 0, so all points with more than 0 x excluded
+		maxCoords.setLocation(0, maxCoords.getY());
+		
+		SpatialDataset res = new SpatialDataset();
+		List<BoundingBox> blackList = new ArrayList<BoundingBox>();
+		blackList.add(botLeft1);
+		blackList.add(botLeft2);
+		si.__getSpatialDataInBoundingBox(new BoundingBox(minCoords, maxCoords),res,blackList);
+		
+		SpatialDataset expected = new SpatialDataset(ds.size());
+		
+		//dynamically populate expected points
+		for(int i = 0;i<ds.size();i++) {
+			SpatialData pt1 = ds.getSpatialData(i);
+		
+			//only add bottom left points to expected set
+			if((pt1.getLocation().getX() <=0) && (pt1.getLocation().getY() >=2)) {
+				expected.addSpatialData(pt1);
+			}
+		}
+		
+		Assert.assertEquals(expected.size(), res.size());
+		//make sure all points in expected are in results
+		
+		for(int i = 0;i <expected.size();i++) {
+			SpatialData ept = expected.getSpatialData(i);
+			boolean pointFound=false;
+			for(int j= 0;j <res.size();j++) {
+				SpatialData apt = res.getSpatialData(j);
+				
+				if(apt == ept) {
+					pointFound=true;
+					break;
+				}
+			}
+			if(!pointFound) {
+				Assert.fail("expected to find point "+ept+ " but it wasn't in dataset after index search with blacklist");
+			}
+		}
+	
+	}
+	
+	
+	
+	@Test
+	void testgetSpatialDataInRange_blacklist_exclude_all() {
+		SpatialDataset ds = buildTestDataset();
+		
+
+		SpatialDataIndex si = new SpatialDataIndex(ds);
+		
+		
+		
+		
+		
+		//
+		BoundingBox left = new BoundingBox(-6, -6,0, 9);
+		
+		
+		Point2D maxCoords = ds.findMaxCoordinates();
+		Point2D minCoords = ds.findMinCoordinates();
+		
+		//max max x be 0, so all points with more than 0 x excluded
+		maxCoords.setLocation(0, maxCoords.getY());
+		
+		SpatialDataset res = new SpatialDataset();
+		List<BoundingBox> blackList = new ArrayList<BoundingBox>();
+		blackList.add(left);
+		si.__getSpatialDataInBoundingBox(new BoundingBox(minCoords, maxCoords),res,blackList);
+		
+		Assert.assertEquals(0, res.size());
+			
+	}
+	
 	@Test
 	void testgetSpatialDataInRange_entire_dataset2() {
 	
