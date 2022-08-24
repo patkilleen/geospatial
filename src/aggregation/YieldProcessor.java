@@ -599,9 +599,10 @@ public class YieldProcessor {
 			}
 			
 			_inputDatasetBuffer.clear();
-			System.out.println("writing fusion results to "+outputCSV);
+			
 			
 		}//end iterate each tiff to read and fuse
+		System.out.println("writing fusion results to "+outputCSV);
 		FileHandler.writeSpatialDatasetToFile(outputCSV,header, outputDataset,true,",",false);
 		
 	
