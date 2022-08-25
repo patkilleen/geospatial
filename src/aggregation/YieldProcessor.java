@@ -444,7 +444,14 @@ public class YieldProcessor {
 		
 		startTime =  System.currentTimeMillis();   
 		for(int bandIx =bandFromIx; bandIx <=bandToIx;bandIx++ ) {
-			r.multiThreaded_fuseAll(numberOfThreads,inputDataset, sep, radius, distMetric, bandIx); 
+			if(inputDataset.size() >= numberOfThreads) {
+				r.multiThreaded_fuseAll(numberOfThreads,inputDataset, sep, radius, distMetric, bandIx);
+			}else {
+				//single thread to process very small dataset
+				r.multiThreaded_fuseAll(1,inputDataset, sep, radius, distMetric, bandIx);	
+			}
+			
+			 
 			
 		}
 		endTime =  System.currentTimeMillis();
@@ -584,7 +591,12 @@ public class YieldProcessor {
 			
 			startTime =  System.currentTimeMillis();   
 			for(int bandIx =bandFromIx; bandIx <=bandToIx;bandIx++ ) {
-				r.multiThreaded_fuseAll(numberOfThreads,_inputDatasetBuffer, sep, radius, distMetric, bandIx); 
+				if(_inputDatasetBuffer.size() >= numberOfThreads) {
+					r.multiThreaded_fuseAll(numberOfThreads,_inputDatasetBuffer, sep, radius, distMetric, bandIx);
+				}else {
+					//single thread to process very small dataset
+					r.multiThreaded_fuseAll(1,_inputDatasetBuffer, sep, radius, distMetric, bandIx);	
+				}
 				
 			}
 			endTime =  System.currentTimeMillis();
@@ -709,7 +721,13 @@ public class YieldProcessor {
 			
 			startTime =  System.currentTimeMillis();
 			for(int bandIx =bandFromIx; bandIx <=bandToIx;bandIx++ ) {
-				r.multiThreaded_fuseAll(numberOfThreads,inputDataset, sep, radius, distMetric, bandIx); 
+				if(inputDataset.size() >= numberOfThreads) {
+					r.multiThreaded_fuseAll(numberOfThreads,inputDataset, sep, radius, distMetric, bandIx);
+				}else {
+					//single thread to process very small dataset
+					r.multiThreaded_fuseAll(1,inputDataset, sep, radius, distMetric, bandIx);	
+				}
+				 
 				
 			}
 			
