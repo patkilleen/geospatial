@@ -12,6 +12,7 @@ import java.util.List;
 import org.apache.commons.imaging.ImageReadException;
 import org.junit.jupiter.api.Test;
 
+import data_structure.CompressedBooleanMatrix;
 import data_structure.MyRaster;
 import data_structure.Polygon2D;
 import data_structure.SpatialData;
@@ -24,8 +25,9 @@ class TestMyRaster {
 	private static final double DOUBLE_COMPARE_EPSILON=0.000001;
 	private static final String TEST_RASTER_FILE_PATH = "test-data/example-raster.tif";
 	private static final String TEST_RASTER_CSV_FILE_PATH = "test-data/example-raster.csv";
-	private static final String PATH_TO_R_SCRIPT_EXE = "/path/to/R/R-4.1.3/bin/Rscript.exe";//environment dependent!
+	private static final String PATH_TO_R_SCRIPT_EXE = "/path/to/R/R-4.1.3/bin/Rscript.exe";//environment dependent!	
 	private static final String PATH_TO_R_RASTER_INFO_SCRIPT = "r/raster-info.r";
+	private static final int NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION=1;
 
 	private static final int X_IX=0;
 	private static final int Y_IX=1;
@@ -55,7 +57,7 @@ class TestMyRaster {
 	void test_adjustAreaToPointCenters() throws ImageReadException, IOException {
 		//public Rectangle2D adjustAreaToPointCenters(Rectangle2D rec) {
 		MyRaster r = new MyRaster();
-		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
 		double xmin = 438510.9;
 		double xmax = 438511.76;
 		double ymin = 5019647.6;
@@ -158,7 +160,7 @@ class TestMyRaster {
 
 
 		MyRaster r = new MyRaster();
-		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
 
 		float [] pixelValueBuffer = new float[r.getNumBands()];
 		List<double[]> imgData = loadPixelsValues();
@@ -180,7 +182,7 @@ class TestMyRaster {
 	@Test
 	void test_load_image_attributes() throws ImageReadException, IOException {
 		MyRaster r = new MyRaster();
-		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
 		Assert.assertEquals(10,r.getHeight());
 		Assert.assertEquals(9,r.getWidth());
 		Assert.assertEquals(0.5,r.getPixelSpatialScaleX(),DOUBLE_COMPARE_EPSILON);
@@ -196,7 +198,7 @@ class TestMyRaster {
 	@Test
 	void test_mean() throws ImageReadException, IOException {
 		MyRaster r = new MyRaster();
-		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
 		float [] pixelValueBuffer = new float[r.getNumBands()];
 
 		double radius_halfPixelAway = r.getPixelSpatialScaleX()/2.0;
@@ -308,7 +310,7 @@ class TestMyRaster {
 	@Test
 	void test_max() throws ImageReadException, IOException {
 		MyRaster r = new MyRaster();
-		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
 
 		float [] pixelValueBuffer = new float[r.getNumBands()];
 
@@ -420,7 +422,7 @@ class TestMyRaster {
 	@Test
 	void test_min() throws ImageReadException, IOException {
 		MyRaster r = new MyRaster();
-		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
 
 		float [] pixelValueBuffer = new float[r.getNumBands()];
 		double radius_halfPixelAway = r.getPixelSpatialScaleX()/2.0;
@@ -531,7 +533,7 @@ class TestMyRaster {
 	@Test
 	void test_aggregation_outside_raster_extent() throws ImageReadException, IOException {
 		MyRaster r = new MyRaster();
-		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
 
 		float [] pixelValueBuffer = new float[r.getNumBands()];
 		double radius_halfPixelAway = r.getPixelSpatialScaleX()/2.0;
@@ -576,7 +578,7 @@ class TestMyRaster {
 
 
 		MyRaster r = new MyRaster(pixelBoundary);
-		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
 
 
 		float [] pixelValueBuffer = new float[r.getNumBands()];
@@ -680,6 +682,332 @@ class TestMyRaster {
 
 
 	@Test
+	void test_aggregation_with_boundary_and_inner_field_boundary_rect() throws ImageReadException, IOException {
+
+
+
+		double radius_halfPixelAway =0.5/2.0;
+		double radius_1PixelAway = 0.5;
+		//double radius_1andHalfPixelAway =radius_1PixelAway +radius_halfPixelAway;
+		double radius_2PixelAway =0.5*2;
+		double radius_3PixelAway = 0.5*3;
+		
+		//inner boundary rectangle
+		Rectangle2D innerBoundaryRec = new Rectangle2D.Double(438511.0f,5019650.0-radius_halfPixelAway,radius_2PixelAway+radius_halfPixelAway,radius_3PixelAway);
+
+		Polygon2D pixelBoundary = new Polygon2D();
+		pixelBoundary.addPoint((float)(438511.0f-radius_1PixelAway), 5019650.0f);//top left inner corner (1 pixel away from border)
+		pixelBoundary.addPoint(438514.0f, 5019650.0f);//top right inner corner (1 pixel away from border)
+		pixelBoundary.addPoint(438514.0f, 5019646.0f);//bottom right inner corner (1 pixel away from border)
+		pixelBoundary.addPoint((float)(438511.0f-radius_1PixelAway), 5019646.0f);//bottom left inner corner (1 pixel away from border)
+		pixelBoundary.addPoint((float)(438511.0f-radius_1PixelAway), 5019650.0f);//close path of polygon
+
+
+		MyRaster r = new MyRaster(pixelBoundary,innerBoundaryRec);
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
+
+
+		float [] pixelValueBuffer = new float[r.getNumBands()];
+
+		Rectangle2D bb = r.getBoundingBox();
+
+
+
+		//TOP LEFT CORNER
+
+		//[28] [28] [28] 191 ....
+		// [28] (28) (28) 191 ...
+		// [28] (82) (222) 222 ... 
+		// 128 82 222   159 ...
+		//...
+
+
+		Assert.assertEquals((28.0+28.0+82.0+222.0)/4.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((28.0+28.0+82.0)/3.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+
+
+		//TOP RIGHT CORNER
+		/*
+		 * ... 		222 	[222]	[191]	[82]
+		 * ... 		222		(82)	(82)	[82]
+		 * ...		159		(222)	(82)	[222]
+		 * ...		159		159		222		222
+		 *....								...
+		 */
+
+		Assert.assertEquals((82.0 +82.0 + 222.0 + 82.0)/4.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((82.0+82.0+82.0)/3.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+
+
+
+		//BOT RIGHT CORNER
+		/*
+		 * ...								...
+		 * ... 		159 	99		13		13
+		 * ... 		99		(13)	(23)	[23]
+		 * ...		99		(13)	(13)	[23]
+		 * ...		159		[13]	[13]	[13]
+		 */
+
+		Assert.assertEquals((13.0 +13.0 + 13.0 + 23.0)/4.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((13.0+13.0+23.0)/3.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+
+
+		//BOT LEFT CORNER
+		/*
+		 *			...						...
+		 *  		128 		28		191		82	...
+		 *  		[128]		(191)	(191)	82	...
+		 * 			[128]		(191)	(28)	82	...
+		 * 			[128]		[191]	[191]	82	...
+		 */
+
+		Assert.assertEquals((191.0 +191.0 + 191.0 + 28.0)/4.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((191.0+191.0+28.0)/3.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+
+
+		//BOT CENTER
+		/*
+		 * 		191		82		222		159		99 ...
+		 * ...	191		(82)	(222)	(99	)	13			...
+		 * ... 28		(82)	(222)	(99) 	13...	
+		 *... 191		[82]	[222]	[159]	13		...
+		 */
+
+		Assert.assertEquals((82.0+82.0+222.0+222.0+99.0+99.0)/6.0,r.mean(new Point2D.Double(438512+radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((82.0+222.0+222.0+99.0)/4.0,r.mean(new Point2D.Double(438512+radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+
+
+
+
+
+		pixelBoundary = new Polygon2D();
+		pixelBoundary.addPoint(438512.0f, (float)(5019648+radius_1PixelAway));//top left inner corner (1 pixel away from border)
+		pixelBoundary.addPoint(438513.0f, (float)(5019648+radius_1PixelAway));//top right inner corner (1 pixel away from border)
+		pixelBoundary.addPoint(438513.0f, (float)(5019647.0f+radius_1PixelAway));//bottom right inner corner (1 pixel away from border)
+		pixelBoundary.addPoint(438512.0f, (float)(5019647.0f+radius_1PixelAway));//bottom left inner corner (1 pixel away from border)
+		pixelBoundary.addPoint(438512.0f, (float)(5019648+radius_1PixelAway));//close the polygon
+		r.setPixelBoundary(pixelBoundary);
+		r.loadPixelInsideBoundaryMatrix();
+		//CENTER
+		/*
+		 * 		159		159			159		159		222 ...
+		 * ...	222		(159)		(159)	[159]		159			...
+		 * ... 	82		(222)		(159)	[99] 		99...	
+		 *... 	82		[222]		[159]	[99]		13		...
+		 */
+
+		Assert.assertEquals((159.0+159.0+222.0+159.0)/4.0,r.mean(new Point2D.Double(438513-radius_halfPixelAway,5019648 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((159.0+159.0+222.0)/3.0,r.mean(new Point2D.Double(438513-radius_halfPixelAway,5019648 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+
+
+
+
+
+	}
+	
+
+	@Test
+	void test_multithreaded_loadPixelInsideBoundaryMatrix() throws ImageReadException, IOException, Exception {
+
+
+
+		double radius_halfPixelAway =0.5/2.0;
+		double radius_1PixelAway = 0.5;
+		//double radius_1andHalfPixelAway =radius_1PixelAway +radius_halfPixelAway;
+		double radius_2PixelAway =0.5*2;
+		double radius_3PixelAway = 0.5*3;
+
+		//inner boundary rectangle
+		Rectangle2D innerBoundaryRec = new Rectangle2D.Double(438511.0f,5019650.0-radius_halfPixelAway,radius_2PixelAway+radius_halfPixelAway,radius_3PixelAway);
+		
+		Polygon2D pixelBoundary = new Polygon2D();
+		pixelBoundary.addPoint((float)(438511.0f-radius_1PixelAway), 5019650.0f);//top left inner corner (1 pixel away from border)
+		pixelBoundary.addPoint(438514.0f, 5019650.0f);//top right inner corner (1 pixel away from border)
+		pixelBoundary.addPoint(438514.0f, 5019646.0f);//bottom right inner corner (1 pixel away from border)
+		pixelBoundary.addPoint((float)(438511.0f-radius_1PixelAway), 5019646.0f);//bottom left inner corner (1 pixel away from border)
+		pixelBoundary.addPoint((float)(438511.0f-radius_1PixelAway), 5019650.0f);//close path of polygon
+
+
+		MyRaster r = new MyRaster(pixelBoundary,innerBoundaryRec);
+
+		//this initially creates the pixel boundary flag matrix 
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
+
+		CompressedBooleanMatrix flagMatrix =r.getPixelInsideBoundaryFlags();
+
+
+		//reload it to simulate all ready available matrix of pixel boundary flags 
+		r = new MyRaster(flagMatrix);
+
+		//this initially creates the pixel boundary flag matrix 
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
+
+
+		Rectangle2D bb = r.getBoundingBox();
+
+		float [] pixelValueBuffer = new float[r.getNumBands()];
+
+		r.setPixelBoundary(pixelBoundary);
+		
+		r.loadPixelInsideBoundaryMatrix();
+		CompressedBooleanMatrix expected = r.getPixelInsideBoundaryFlags();
+		r.multiThreadedLoadPixelInsideBoundaryMatrix(1);
+		CompressedBooleanMatrix actual = r.getPixelInsideBoundaryFlags();
+		
+		Assert.assertEquals(true, expected.equals(actual));
+		
+		for(int i=2;i<32;i++) {
+		r.loadPixelInsideBoundaryMatrix();
+		expected = r.getPixelInsideBoundaryFlags();
+		r.multiThreadedLoadPixelInsideBoundaryMatrix(i);
+		actual = r.getPixelInsideBoundaryFlags();
+		
+		Assert.assertEquals(true, expected.equals(actual));
+		}
+		
+		
+	}
+
+	
+
+	@Test
+	void test_aggregation_with_boundary_with_predfined_pixel_boundary_matrix_and_inner_rect() throws ImageReadException, IOException {
+
+
+
+		double radius_halfPixelAway =0.5/2.0;
+		double radius_1PixelAway = 0.5;
+		//double radius_1andHalfPixelAway =radius_1PixelAway +radius_halfPixelAway;
+		double radius_2PixelAway =0.5*2;
+		double radius_3PixelAway = 0.5*3;
+
+		//inner boundary rectangle
+		Rectangle2D innerBoundaryRec = new Rectangle2D.Double(438511.0f,5019650.0-radius_halfPixelAway,radius_2PixelAway+radius_halfPixelAway,radius_3PixelAway);
+		
+		Polygon2D pixelBoundary = new Polygon2D();
+		pixelBoundary.addPoint((float)(438511.0f-radius_1PixelAway), 5019650.0f);//top left inner corner (1 pixel away from border)
+		pixelBoundary.addPoint(438514.0f, 5019650.0f);//top right inner corner (1 pixel away from border)
+		pixelBoundary.addPoint(438514.0f, 5019646.0f);//bottom right inner corner (1 pixel away from border)
+		pixelBoundary.addPoint((float)(438511.0f-radius_1PixelAway), 5019646.0f);//bottom left inner corner (1 pixel away from border)
+		pixelBoundary.addPoint((float)(438511.0f-radius_1PixelAway), 5019650.0f);//close path of polygon
+
+
+		MyRaster r = new MyRaster(pixelBoundary,innerBoundaryRec);
+
+		//this initially creates the pixel boundary flag matrix 
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
+
+		CompressedBooleanMatrix flagMatrix =r.getPixelInsideBoundaryFlags();
+
+
+		//reload it to simulate all ready available matrix of pixel boundary flags 
+		r = new MyRaster(flagMatrix);
+
+		//this initially creates the pixel boundary flag matrix 
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
+
+
+		Rectangle2D bb = r.getBoundingBox();
+
+		float [] pixelValueBuffer = new float[r.getNumBands()];
+
+		//TOP LEFT CORNER
+
+		//[28] [28] [28] 191 ....
+		// [28] (28) (28) 191 ...
+		// [28] (82) (222) 222 ... 
+		// 128 82 222   159 ...
+		//...
+
+
+		Assert.assertEquals((28.0+28.0+82.0+222.0)/4.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((28.0+28.0+82.0)/3.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+
+
+		//TOP RIGHT CORNER
+		/*
+		 * ... 		222 	[222]	[191]	[82]
+		 * ... 		222		(82)	(82)	[82]
+		 * ...		159		(222)	(82)	[222]
+		 * ...		159		159		222		222
+		 *....								...
+		 */
+
+		Assert.assertEquals((82.0 +82.0 + 222.0 + 82.0)/4.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((82.0+82.0+82.0)/3.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019650 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+
+
+
+		//BOT RIGHT CORNER
+		/*
+		 * ...								...
+		 * ... 		159 	99		13		13
+		 * ... 		99		(13)	(23)	[23]
+		 * ...		99		(13)	(13)	[23]
+		 * ...		159		[13]	[13]	[13]
+		 */
+
+		Assert.assertEquals((13.0 +13.0 + 13.0 + 23.0)/4.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((13.0+13.0+23.0)/3.0,r.mean(new Point2D.Double(438514-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+
+
+		//BOT LEFT CORNER
+		/*
+		 *			...						...
+		 *  		128 		28		191		82	...
+		 *  		[128]		(191)	(191)	82	...
+		 * 			[128]		(191)	(28)	82	...
+		 * 			[128]		[191]	[191]	82	...
+		 */
+
+		Assert.assertEquals((191.0 +191.0 + 191.0 + 28.0)/4.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((191.0+191.0+28.0)/3.0,r.mean(new Point2D.Double(438511-radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+
+
+		//BOT CENTER
+		/*
+		 * 		191		82		222		159		99 ...
+		 * ...	191		(82)	(222)	(99	)	13			...
+		 * ... 28		(82)	(222)	(99) 	13...	
+		 *... 191		[82]	[222]	[159]	13		...
+		 */
+
+		Assert.assertEquals((82.0+82.0+222.0+222.0+99.0+99.0)/6.0,r.mean(new Point2D.Double(438512+radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((82.0+222.0+222.0+99.0)/4.0,r.mean(new Point2D.Double(438512+radius_halfPixelAway,5019646 + radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+
+
+
+
+
+		pixelBoundary = new Polygon2D();
+		pixelBoundary.addPoint(438512.0f, (float)(5019648+radius_1PixelAway));//top left inner corner (1 pixel away from border)
+		pixelBoundary.addPoint(438513.0f, (float)(5019648+radius_1PixelAway));//top right inner corner (1 pixel away from border)
+		pixelBoundary.addPoint(438513.0f, (float)(5019647.0f+radius_1PixelAway));//bottom right inner corner (1 pixel away from border)
+		pixelBoundary.addPoint(438512.0f, (float)(5019647.0f+radius_1PixelAway));//bottom left inner corner (1 pixel away from border)
+		pixelBoundary.addPoint(438512.0f, (float)(5019648+radius_1PixelAway));//close the polygon
+		r.setPixelBoundary(pixelBoundary);
+		r.loadPixelInsideBoundaryMatrix();
+		//CENTER
+		/*
+		 * 		159		159			159		159		222 ...
+		 * ...	222		(159)		(159)	[159]		159			...
+		 * ... 	82		(222)		(159)	[99] 		99...	
+		 *... 	82		[222]		[159]	[99]		13		...
+		 */
+
+		Assert.assertEquals((159.0+159.0+222.0+159.0)/4.0,r.mean(new Point2D.Double(438513-radius_halfPixelAway,5019648 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.INFINITY_NORM, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+		Assert.assertEquals((159.0+159.0+222.0)/3.0,r.mean(new Point2D.Double(438513-radius_halfPixelAway,5019648 - radius_halfPixelAway), radius_1PixelAway, SpatialData.DistanceMetric.EUCLIDEAN, 0,null,pixelValueBuffer),DOUBLE_COMPARE_EPSILON);
+
+
+
+
+
+	}
+
+
+
+	@Test
 	void test_aggregation_with_boundary_with_predfined_pixel_boundary_matrix() throws ImageReadException, IOException {
 
 
@@ -701,16 +1029,16 @@ class TestMyRaster {
 		MyRaster r = new MyRaster(pixelBoundary);
 
 		//this initially creates the pixel boundary flag matrix 
-		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
 
-		boolean [][]flagMatrix =r.getPixelInsideBoundaryFlags();
+		CompressedBooleanMatrix flagMatrix =r.getPixelInsideBoundaryFlags();
 
 
 		//reload it to simulate all ready available matrix of pixel boundary flags 
 		r = new MyRaster(flagMatrix);
 
 		//this initially creates the pixel boundary flag matrix 
-		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
 
 
 		Rectangle2D bb = r.getBoundingBox();
@@ -818,7 +1146,7 @@ class TestMyRaster {
 
 
 		MyRaster r = new MyRaster();
-		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
 		float [] pixelValueBuffer = new float[r.getNumBands()];
 
 
@@ -974,7 +1302,7 @@ class TestMyRaster {
 
 
 		MyRaster r = new MyRaster();
-		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH);
+		r.load(PATH_TO_R_SCRIPT_EXE, PATH_TO_R_RASTER_INFO_SCRIPT, TEST_RASTER_FILE_PATH,NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION);
 		float [] pixelValueBuffer = new float[r.getNumBands()];
 		int bandIx = 0;
 		//multithreadted for rgb not supported, so convert to different storeage forma

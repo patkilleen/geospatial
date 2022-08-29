@@ -50,7 +50,8 @@ public class MyRaster {
 	private boolean isRGBRaster;
 
 	private Rectangle2D boundingBox;
-
+	private Rectangle2D innerBoundaryRec;
+	
 	private double pixelSpatialScaleX;
 	private double pixelSpatialScaleY;
 
@@ -64,7 +65,7 @@ public class MyRaster {
 	Raster r = null;//used to store RGB raster data
 	TiffRasterData rasterData=null;//used to store MS raster data
 	
-	boolean [][] pixelInsideBoundaryFlags;
+	CompressedBooleanMatrix pixelInsideBoundaryFlags;
 	
 	Polygon2D pixelBoundary;
 	/**
@@ -81,6 +82,21 @@ public class MyRaster {
 	/**
 	 * creates a raster object from a file path to a geotiff. 
 	 * Avoids reading anything into memory until other API functions are called
+	 * @param pixelBoundary pixel boundary that limits which pixels to process in raster aggregations. No pixel will be included in the aggregation that is outside this boundary.
+	 * @param innerBoundaryRec rectangle contained entirely within the field used to speed up the pixelInsideBoundaryFlags creation 
+	 */
+	public MyRaster(Polygon2D pixelBoundary, Rectangle2D innerBoundaryRec) {
+
+		this.pixelBoundary = pixelBoundary;
+		this.innerBoundaryRec = innerBoundaryRec;
+		
+		loaded=false;
+	}
+	
+	
+	/**
+	 * creates a raster object from a file path to a geotiff. 
+	 * Avoids reading anything into memory until other API functions are called
 	 */
 	public MyRaster( ) {
 		loaded=false;
@@ -92,7 +108,7 @@ public class MyRaster {
 	 * Avoids reading anything into memory until other API functions are called
 	 * @param pixelInsideBoundaryFlags a predifined matrix of flags indicating what pixel falls outside the proessing boundarnyc
 	 */
-	public MyRaster(boolean [][] pixelInsideBoundaryFlags ) {
+	public MyRaster(CompressedBooleanMatrix pixelInsideBoundaryFlags ) {
 		loaded=false;
 		this.pixelInsideBoundaryFlags=pixelInsideBoundaryFlags;
 
@@ -121,11 +137,11 @@ public class MyRaster {
 
 	
 	
-	public boolean[][] getPixelInsideBoundaryFlags() {
+	public CompressedBooleanMatrix getPixelInsideBoundaryFlags() {
 		return pixelInsideBoundaryFlags;
 	}
 
-	public void setPixelInsideBoundaryFlags(boolean[][] pixelInsideBoundaryFlags) {
+	public void setPixelInsideBoundaryFlags(CompressedBooleanMatrix pixelInsideBoundaryFlags) {
 		this.pixelInsideBoundaryFlags = pixelInsideBoundaryFlags;
 	}
 
@@ -157,13 +173,13 @@ public class MyRaster {
 	}
 
 
-	public void load(String rExecutablePath, String rasterInfoRScriptPath, String inputTiffFile) throws IOException, ImageReadException {
+	public void load(String rExecutablePath, String rasterInfoRScriptPath, String inputTiffFile, int numThreads) throws IOException, ImageReadException {
 		if(inputTiffFile==null) {
 			throw new IllegalArgumentException("expected non null geotiff file path ");
 		}
 
 
-		loadRasterAttributes( rExecutablePath,  rasterInfoRScriptPath,  inputTiffFile);
+		loadRasterAttributes( rExecutablePath,  rasterInfoRScriptPath,  inputTiffFile,numThreads);
 
 		readRaster(inputTiffFile);
 
@@ -249,7 +265,8 @@ public class MyRaster {
 	}
 
 
-	public void loadRasterAttributes(String rExecutablePath, String rasterInfoRScriptPath, String inputTiffFile) throws IOException {
+	public void loadRasterAttributes(String rExecutablePath, String rasterInfoRScriptPath, String inputTiffFile,int numThreads) throws IOException {
+		
 
 		//we create a temporary file to output the raster information results from R Cran Script
 		File resFile = File.createTempFile("java-geo", ".csv");
@@ -347,7 +364,14 @@ public class MyRaster {
 		//avoid re-creating the pixel boundary matrix if 
 		//it was already provided
 		if(pixelInsideBoundaryFlags == null) {
-			loadPixelInsideBoundaryMatrix();
+			try {
+				multiThreadedLoadPixelInsideBoundaryMatrix(numThreads);
+			} catch (Exception e) {
+				System.out.println(e.getMessage());
+				e.printStackTrace();
+				throw new RuntimeException(e.getMessage());
+			}
+			
 		}
 
 	}
@@ -689,7 +713,7 @@ public class MyRaster {
 				//non null matrix of  means boundary defined to determine wheat poitn to include in aggregations
 				if(pixelInsideBoundaryFlags != null) {
 					//pixel location falls outside the boundary? 
-					if(!pixelInsideBoundaryFlags[x][y]) {
+					if(!pixelInsideBoundaryFlags.getFlag(x,y)) {
 						
 						continue;
 					}
@@ -803,13 +827,14 @@ public class MyRaster {
 	 * @param inputTiffFile path to GeoTIFF raster file to convert to CSV
 	 * @param outputCSV output CSV file path
 	 * @param bandIx the band index to include in the CSV file (ignored for multispectral data that store data in floating point format). For RGB 0= red, 1 = green, 2 = blue.
-	 * @param pixelValueBuffer an optional pre-allocated buffer to store temporary pixel values for raster with more than one band 
+	 * @param pixelValueBuffer an optional pre-allocated buffer to store temporary pixel values for raster with more than one band
+	 * @param numThreads number of threads to build field boudary matrix with 
 	 * @throws ImageReadException
 	 * @throws IOException
 	 */
-	public static void rasterToCSV(String rExecutablePath, String rasterInfoRScriptPath, String inputTiffFile, String outputCSV, int bandIx,float [] pixelValueBuffer) throws ImageReadException, IOException {
+	public static void rasterToCSV(String rExecutablePath, String rasterInfoRScriptPath, String inputTiffFile, String outputCSV, int bandIx,float [] pixelValueBuffer,int numThreads) throws ImageReadException, IOException {
 		MyRaster r = new MyRaster();
-		r.load(rExecutablePath,rasterInfoRScriptPath,inputTiffFile);
+		r.load(rExecutablePath,rasterInfoRScriptPath,inputTiffFile,numThreads);
 		
 		
 		System.out.println("converting following raster to csv: "+outputCSV);
@@ -880,7 +905,6 @@ public class MyRaster {
 	 *  
 	 *  
 	 *  Note that this function can take a considerable amount of time for large rasters.
-	 *  TODO: spead up using mutliple threads
 	 */
 	public void loadPixelInsideBoundaryMatrix() {
 		
@@ -908,8 +932,10 @@ public class MyRaster {
 
 		
 		//create matrix of flags to hold booleans that indicate whether a pixel fallsindise given boundary
-		pixelInsideBoundaryFlags = new boolean[width][height];
+		pixelInsideBoundaryFlags = new CompressedBooleanMatrix(width,height);
 
+		Point2D ptBuffer = new Point2D.Double(0,0);
+		
 		//we start at top left corner of area (maxy, min x)
 		//iterate over every pixel location 
 		for(double northing = ymax;northing>=ymin;northing-=pixelSpatialScaleY) {
@@ -917,19 +943,131 @@ public class MyRaster {
 
 				int x = eastingToXIndex(easting);		
 				int y = northingToYIndex(northing);
-
-
-				//we have to check whether pixel location falls inside the boundary and log result 
-				pixelInsideBoundaryFlags[x][y] = pixelBoundary.contains(easting, northing);
+				_loadPixelInsideBoundaryMatrix(easting,northing,x,y,ptBuffer);
 				
-
-
 
 			}//end inner loop over esting
 		}//end northing loop
 	}//end func
 
+	
 
+	/**
+	 * Multithreaded version of <code>loadPixelInsideBoundaryMatrix</code> function.
+	 * 
+	 * @param numThreads number of threads desired
+	 * @throws Exception when a thread gets an exception
+	 */
+	public void multiThreadedLoadPixelInsideBoundaryMatrix(int numThreads) throws Exception {
+		
+		if (numThreads<=0) {
+			throw new IllegalArgumentException("cannot have a non-positive number of threads "+numThreads+" to build the pixel flag  boundary matrix"); 
+		}
+		if (numThreads==1) {
+			loadPixelInsideBoundaryMatrix();
+			return;
+		}
+		
+		//can't have more thread than rows
+		if(numThreads > this.getHeight()) {
+			numThreads=this.getHeight();
+		}
+		
+		
+		if(pixelBoundary== null) {
+			//all points consider inside boundary of entire raster
+			pixelInsideBoundaryFlags=null;
+			return;
+		}
+		
+		//create matrix of flags to hold booleans that indicate whether a pixel fallsindise given boundary
+		pixelInsideBoundaryFlags = new CompressedBooleanMatrix(width,height);
+		
+		System.out.println("creating pixel inside boundary flag matrix uinsg "+numThreads+" threads...");
+		
+		/*
+		 * Each thread will have their one set of rows to traverse.
+		 * 
+		 * 
+		 */
+		
+
+
+		double xmax = boundingBox.getMaxX();
+		double xmin = boundingBox.getMinX();
+		double ymax = boundingBox.getMaxY();
+		double ymin = boundingBox.getMinY();
+
+		
+		Rectangle2D boundingSearchRec =adjustAreaToPointCenters(xmin,xmax,ymin,ymax,null);
+		
+		xmin = boundingSearchRec.getMinX();
+		xmax=boundingSearchRec.getMaxX();
+		ymin = boundingSearchRec.getMinY();
+		ymax = boundingSearchRec.getMaxY();
+		
+		
+		//double partitionXWidth =(xmax - xmin)/pixelSpatialScaleX;
+		//double partitionYWidth =(ymax - ymin)/pixelSpatialScaleY;
+		
+		//don't need divice columns, since threahd have entire set of columns
+		int rowsPerThread =  (int)Math.ceil(((double)this.getHeight())/ ((double)numThreads));
+		List<PixelBoundaryWorker> workers = new ArrayList<PixelBoundaryWorker>(numThreads);
+		
+		double workerYMin=ymin;
+		double workerYMax=ymin+rowsPerThread*pixelSpatialScaleY;
+		//create the worker and assign the slice (set of rowrs) of the raster it will work on
+		//to populate the inside boundary pixel matrix
+		for(int i =0;i<numThreads && workerYMin < ymax;i++) {
+			
+			workerYMax = Math.min(ymax, workerYMax);//can't exceed the raster's height extenxt
+			
+			//(MyRaster myRaster, double xmin, double ymin, double xmax, double ymax) 
+			PixelBoundaryWorker worker = new PixelBoundaryWorker(this,xmin,workerYMin,xmax,workerYMax);
+			workers.add(worker);
+			
+			workerYMin=workerYMax+pixelSpatialScaleY;
+			workerYMax=workerYMin+rowsPerThread*pixelSpatialScaleY;
+				
+			
+			
+		}
+		
+		//start the parrallel boundary matrix creation
+		for(PixelBoundaryWorker worker : workers) {
+			worker.startBoundaryCreation();
+		}
+		
+		//wait for workers
+		for(PixelBoundaryWorker worker : workers) {
+			
+			worker.waitForBoundaryCreation();
+		}
+		
+		
+	}//end func
+
+	private void _loadPixelInsideBoundaryMatrix(double easting, double northing, int x, int y, Point2D ptBuffer) {
+		//most pixels will be in the field, so if the inner boundary rectangle is defined
+		// assummng it's fully contained by the filed, then we can check whehter the point
+		//falls inside the recatangle for efficiency, and then check the polygon if it's outtide
+		//the recatnalge
+		if (innerBoundaryRec!= null) {
+			ptBuffer.setLocation(x, y);
+			//simple case, pixel deep inside field?
+			if(innerBoundaryRec.contains(ptBuffer)) {
+				pixelInsideBoundaryFlags.setFlag(x,y,true);
+			}else {
+				//pixel may or may not be in the field					
+				pixelInsideBoundaryFlags.setFlag(x,y,pixelBoundary.contains(easting, northing));
+			}
+		}else {
+		//	we have to check whether pixel location falls inside the boundary and log result 
+			pixelInsideBoundaryFlags.setFlag(x,y,pixelBoundary.contains(easting, northing));
+		}
+
+
+	}
 	/**
 	 * Fuses all data points in a given dataset to raster pixels by taking the aggregation operators on each
 	 * point in the given dataset. The results are appended to the input dataset's attributes 
@@ -1084,6 +1222,64 @@ public class MyRaster {
 		}
 	}
 	
+	private class PixelBoundaryWorker implements Runnable{
+		MyRaster myRaster;
+		
+		Thread thread;
+		Point2D ptBuffer;
+		double xmin;
+		double ymin;
+		double xmax;
+		double ymax;
+		Exception throwable;
+		public PixelBoundaryWorker(MyRaster myRaster, double xmin, double ymin, double xmax, double ymax) {
+			this.myRaster = myRaster;
+			ptBuffer = new Point2D.Double(0,0);
+			thread = new Thread(this);
+			this.xmin=xmin;
+			this.ymin=ymin;
+			this.xmax=xmax;
+			this.ymax=ymax;
+			
+		}
+		public void startBoundaryCreation() {
+			thread.start();
+		}
+		
+		public void waitForBoundaryCreation() throws Exception{
+			try {
+				thread.join();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			if(throwable != null) {
+				throw throwable;
+			}
+		}
+		public void run() {
+
+			
+			try {
+			//we start at top left corner of area (maxy, min x)
+			//iterate over every pixel location 
+			for(double northing = ymax;northing>=ymin;northing-=myRaster.pixelSpatialScaleY) {
+				for(double easting = xmin;easting<=xmax;easting+=myRaster.pixelSpatialScaleX) {
+
+					int x = myRaster.eastingToXIndex(easting);		
+					int y = myRaster.northingToYIndex(northing);
+					
+					myRaster._loadPixelInsideBoundaryMatrix(easting,northing,x,y,ptBuffer);
+					
+
+				}//end inner loop over esting
+			}//end northing loop
+			
+			}catch(Exception t) {
+				throwable=t;	
+			}
+		}
+	}
 	
 }
 

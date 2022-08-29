@@ -19,6 +19,7 @@ import org.apache.commons.imaging.ImageReadException;
 import org.apache.commons.io.FilenameUtils;
 
 import data_structure.BoundingBox;
+import data_structure.CompressedBooleanMatrix;
 import data_structure.MyRaster;
 import data_structure.Polygon2D;
 import data_structure.SpatialData;
@@ -415,7 +416,7 @@ public class YieldProcessor {
 		System.out.print("reading raster: "+inputGeotiff);
 		
 		long startTime =  System.currentTimeMillis();   
-		r.load(rExecutablePath, rasterInfoRScriptPath, inputGeotiff);
+		r.load(rExecutablePath, rasterInfoRScriptPath, inputGeotiff,numberOfThreads);
 		long endTime =  System.currentTimeMillis();   
 
 		long ellapsedtime = Math.floorDiv(endTime-startTime, 1000);
@@ -535,7 +536,7 @@ public class YieldProcessor {
 			System.out.print("reading raster: "+inputTiff);
 			
 			long startTime =  System.currentTimeMillis();   
-			r.load(rExecutablePath, rasterInfoRScriptPath, inputTiff);
+			r.load(rExecutablePath, rasterInfoRScriptPath, inputTiff,numberOfThreads);
 			long endTime =  System.currentTimeMillis();   
 	
 			long ellapsedtime = Math.floorDiv(endTime-startTime, 1000);
@@ -657,7 +658,7 @@ public class YieldProcessor {
 		
 		//need to load first image to create this matrix
 		//that will then be used for all sbusequent geotiffs
-		boolean [][] pixelInsideBoundaryMatrix = null;
+		CompressedBooleanMatrix pixelInsideBoundaryMatrix = null;
 		
 		
 		//used for aggregating pixels in neighbordhoods
@@ -687,7 +688,7 @@ public class YieldProcessor {
 			long startTime =  System.currentTimeMillis();   
 			
 			//System.out.println("...processing raster: "+f.getAbsolutePath());
-			r.load(rExecutablePath, rasterInfoRScriptPath, f.getAbsolutePath());
+			r.load(rExecutablePath, rasterInfoRScriptPath, f.getAbsolutePath(),numberOfThreads);
 			long endTime =  System.currentTimeMillis();   
 
 			long ellapsedtime = Math.floorDiv(endTime-startTime, 1000);
