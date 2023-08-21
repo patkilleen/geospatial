@@ -144,6 +144,10 @@ public class YieldProcessor {
 		
 		
 	}else if(operation.equals("-clean_all")) {
+		
+		long startTime =  System.currentTimeMillis();   
+				
+		
 		IConfig config = new Configuration(args[1]);
 		
 		String inputCSV = config.getProperty(IConfig.PROPERTY_YP_INPUT_CSV);
@@ -382,7 +386,12 @@ public class YieldProcessor {
 		FileHandler.writeSpatialDatasetToFile(outputCSV,outputHeader, res,true,",",false);
 			
 		
-		
+
+		long endTime =  System.currentTimeMillis();   
+
+		long ellapsedtime = Math.floorDiv(endTime-startTime, 1000);
+		System.out.println("... took approx. "+ellapsedtime+" seconds to clean");
+
 	}else if(operation.equals("-imagery-fusion")) {//fuse yield with GeoTIFF imagery
 		
 		String inputCSV =args[1];
@@ -477,10 +486,69 @@ public class YieldProcessor {
 		
 	}else if(operation.equals("-multi-image-fusion")) {//fuse yield with many smaller  GeoTIFFs tiles of a larger GeoTIff (they won't share the same extent)
 		
+
+			String inputCSV =args[1];
+			String outputCSV = args[2];
+			String inputGeotiffDir =args[3]; //directory where all the Big GeoTIFFs tiles are 
+			String imageryColName =args[4];//only required for MS data as we don't know what band it is. name of bnad column		
+			double radius =Double.parseDouble(args[5]);		
+			SpatialData.DistanceMetric distMetric =SpatialData.DistanceMetric.valueOf(args[6]);
+			//String aggOppStr =args[7];
+			String rExecutablePath=args[7];
+			String rasterInfoRScriptPath = args[8];
+			String fieldBoundaryPath = args[9];
+			int numberOfThreads = Integer.parseInt(args[10]);
+			
+			Rectangle2D innerFieldBoundaryRect = null;
+			//only defined the inner filer boundary rectangle when arguments provided
+			if(args.length >= 15) {
+				try {
+					double minX = Double.parseDouble(args[11]);
+					double maxY = Double.parseDouble(args[12]);
+					double maxX = Double.parseDouble(args[13]);
+					double minY = Double.parseDouble(args[14]);
+					double width = maxX-minX;
+					double height = maxY-minY;
+					innerFieldBoundaryRect = new Rectangle2D.Double(minX,minY,width,height);
+				}catch(NumberFormatException e) {
+					System.out.println("failed to parse command line arguments to inner field boundary. Expected floating points.");
+					throw e;
+				}
+			}
+			
+			String inputCSVHeader = FileHandler.readCSVHeader(inputCSV);
+
+			
+			//
+			String header = inputCSVHeader;
+			
+			System.out.println("reading yield data: "+inputCSV);
+			
+			SpatialDataset _inputDataset = FileHandler.readCSVIntoSpatialDataset(inputCSV,null,",");
+			SpatialDataIndex index = new SpatialDataIndex(_inputDataset);
+			
+			FusionTempResult res = applyMultiImageFusion(inputCSV, outputCSV,inputGeotiffDir,imageryColName,radius,distMetric
+					,rExecutablePath, rasterInfoRScriptPath,  fieldBoundaryPath,  numberOfThreads, innerFieldBoundaryRect,null,header,
+					_inputDataset,index);// null since no preloaded bit maps of pixel in field
+			
+			if(res != null) {
+				System.out.println("writing fusion results to "+outputCSV);
+				FileHandler.writeSpatialDatasetToFile(outputCSV,res.header, _inputDataset,true,",",false);
+			}else {
+				System.out.println("fusion failed");
+			}
+			
+			
+
+			
+	
+	}else if(operation.equals("-multi-image-fusion-directory-of-img-dirs")) {//fuse all the directories of image slices. Each different directory has same number of slices, and ith slice of directory X has same extent 
+		
+
 		String inputCSV =args[1];
 		String outputCSV = args[2];
-		String inputGeotiffDir =args[3]; //directory where all the Big GeoTIFFs tiles are 
-		String imageryColName =args[4];//only required for MS data as we don't know what band it is. name of bnad column		
+		String inputGeotiffDir =args[3]; //directory where all the directory with the Big GeoTIFFs tiles are 
+		//String imageryColName =args[4];//only required for MS data as we don't know what band it is. name of bnad column		
 		double radius =Double.parseDouble(args[5]);		
 		SpatialData.DistanceMetric distMetric =SpatialData.DistanceMetric.valueOf(args[6]);
 		//String aggOppStr =args[7];
@@ -488,21 +556,24 @@ public class YieldProcessor {
 		String rasterInfoRScriptPath = args[8];
 		String fieldBoundaryPath = args[9];
 		int numberOfThreads = Integer.parseInt(args[10]);
-		//int inputCSVRowSplitNum =Integer.parseInt(args[11]);//number of rows to split the input CSV datsaet into
-		//int inputCSVColSplitNum =Integer.parseInt(args[12]);//number of columsn to split the input CSV datsaet into
 		
-		String sep = ",";
-		
-		
-		System.out.println("reading yield data: "+inputCSV);
-		
-		SpatialDataset _inputDataset = FileHandler.readCSVIntoSpatialDataset(inputCSV,null,sep);
-		SpatialDataIndex index = new SpatialDataIndex(_inputDataset);
-		
-		//used to store results of index lookup for yield sbuareas
-		SpatialDataset _inputDatasetBuffer = new SpatialDataset(_inputDataset.size()); 
-		
-		SpatialDataset outputDataset = new SpatialDataset(_inputDataset.size());
+		Rectangle2D innerFieldBoundaryRect = null;
+		//only defined the inner filer boundary rectangle when arguments provided
+		if(args.length >= 15) {
+			try {
+				double minX = Double.parseDouble(args[11]);
+				double maxY = Double.parseDouble(args[12]);
+				double maxX = Double.parseDouble(args[13]);
+				double minY = Double.parseDouble(args[14]);
+				double width = maxX-minX;
+				double height = maxY-minY;
+				innerFieldBoundaryRect = new Rectangle2D.Double(minX,minY,width,height);
+			}catch(NumberFormatException e) {
+				System.out.println("failed to parse command line arguments to inner field boundary. Expected floating points.");
+				throw e;
+			}
+		}
+	
 		
 		
 		String inputCSVHeader = FileHandler.readCSVHeader(inputCSV);
@@ -510,115 +581,76 @@ public class YieldProcessor {
 		
 		//
 		String header = inputCSVHeader;
-		boolean computedHeader=false;
-		
-		//read boundary file
-		SpatialDataset boundaryPts = FileHandler.readCSVIntoSpatialDataset(fieldBoundaryPath, null, sep);
-		
-		//convert field boundary to polygon 2d (used to avoid including raster pixels outside the field)
-		Polygon2D fieldBoundaryPoly =boundaryPts.toPolygon2D();
-
 		
 		
+		String [] tokens = header.split(",");
 		
-		//all the input GeoTIFFs in  directory specified by inputGeotiffDir
-		File[] inputTiffs = FileHandler.getFilesInDirectory(inputGeotiffDir, ".tif");
+		int numBaseAttributes = tokens.length -2; //-2 since the coordinates don't count
 		
-		//the list of bounding boxes of yield points already process
-		List<BoundingBox> bbBlackList = new ArrayList<BoundingBox>(inputTiffs.length);
+		System.out.println("fusing sub-directories of imagery slices in dir: "+inputGeotiffDir);
 		
-		//iterate over every tiff and load them individually into memory for fusion
-		//the GeoTiffs are assumed to fully contain the bounding box of each cell in
-		//the grid of the inputCSV that was split (exactly one geotiff will contain the cell) 
-		for(File inputTiffFile :inputTiffs) {
-			MyRaster r = new MyRaster(fieldBoundaryPoly);
-			String inputTiff = inputTiffFile.getAbsolutePath();
-			System.out.print("reading raster: "+inputTiff);
+		//find all sub directories
+		File targetDir = new File(inputGeotiffDir);
+		File [] files = targetDir.listFiles();
+		
 			
-			long startTime =  System.currentTimeMillis();   
-			r.load(rExecutablePath, rasterInfoRScriptPath, inputTiff,numberOfThreads);
-			long endTime =  System.currentTimeMillis();   
-	
-			long ellapsedtime = Math.floorDiv(endTime-startTime, 1000);
-			System.out.println("... took approx. "+ellapsedtime+" seconds.");
-			
-			Rectangle2D rasterBB = r.getBoundingBox();
-			
-			//this blackbox raster will have margin's trimmed to not fused yiel at very edge of image (-2 * radisu to make sure yield  in fusion be in it))
-			BoundingBox _rasterBB=new BoundingBox(rasterBB.getMinX()+(radius*2),rasterBB.getMinY()+(radius*2),rasterBB.getMaxX()-(2*radius),rasterBB.getMaxY()-(2*radius));
-			
-			//lookup all yield points inside the raster via the index (exlcude those already processed)
-			 index.__getSpatialDataInBoundingBox(_rasterBB, _inputDatasetBuffer, bbBlackList);
-			 
-			 //take note of area already processed
-			 bbBlackList.add(_rasterBB);
-			 
-			//avoid including the cell twice in fusion
-			
-
-			
-			
-//			Iterator<SpatialData> it = targetCell.iterator();
-//			
-			//int aggOpp=-1;
-			
-			//int [] aggOperators = {MyRaster.MEAN_AGG,MyRaster.MAX_AGG,MyRaster.MIN_AGG};
-			String [] aggOperatorNames = {"mean","max","min"};
-	
-			int bandFromIx=0;
-			int bandToIx=0;
-			
-			if(r.isRGBRaster()) {
-				bandFromIx=0;
-				bandToIx=2;
+		List<File> directories = new ArrayList<File>(files.length);
+		for(File file : files) {
+			if(file.isDirectory()){
+				directories.add(file);
 			}
 			
-			if(!computedHeader) {
+		}
 
-				for(String aggOpName : aggOperatorNames) {
-					header = header+",";
-					if(r.isMSRaster()) {
-						header = header + "\"MS_" + imageryColName + "_"+aggOpName+"\"";
-					}else {
-						header = header + "\"RGB_Red_"+aggOpName+"\",\""+ "RGB_Green_"+aggOpName+"\",\""+ "RGB_Blue_"+aggOpName+"\"";
-					}
-				}
-				computedHeader=true;
+		if (directories.size()==0) {
+			System.out.println("no directoreis inside : "+inputGeotiffDir+", exiting...");
+			return;
+		}
+		//pixel bit maps for each slice, only created once
+		List<CompressedBooleanMatrix> infieldPixelBoundariesResult = null;
+		
+		SpatialDataset outputDataset = null;
+		
+		System.out.println("reading yield data: "+inputCSV);
+		
+		SpatialDataset _inputDataset = FileHandler.readCSVIntoSpatialDataset(inputCSV,null,",");
+		
+		SpatialDataIndex index = new SpatialDataIndex(_inputDataset);
+		
+		
+		for(File dir : directories) {
+			
+			
+			String bandName =dir.getName();
+			System.out.println("**");
+			System.out.println("Fusing imagery of band: "+bandName);
+			System.out.println("**");
+			FusionTempResult res = applyMultiImageFusion(inputCSV, outputCSV,dir.getAbsolutePath(),bandName,radius,distMetric
+					,rExecutablePath, rasterInfoRScriptPath,  fieldBoundaryPath,  numberOfThreads, innerFieldBoundaryRect,infieldPixelBoundariesResult,header,
+					_inputDataset,index);
+			
+			if(res == null) {
+				System.out.println("Fusion for imagery of band: "+bandName +" failed.");
+				continue;
 			}
-			
-			System.out.print("fusiong yield data and imagery ");
-			
-			Rectangle2D preAllocatedRect = new Rectangle2D.Double();
-			
-			startTime =  System.currentTimeMillis();   
-			for(int bandIx =bandFromIx; bandIx <=bandToIx;bandIx++ ) {
-				if(_inputDatasetBuffer.size() >= numberOfThreads) {
-					r.multiThreaded_fuseAll(numberOfThreads,_inputDatasetBuffer, sep, radius, distMetric, bandIx);
-				}else {
-					//single thread to process very small dataset
-					r.multiThreaded_fuseAll(1,_inputDatasetBuffer, sep, radius, distMetric, bandIx);	
-				}
+						
+			header = res.header;
+		
+			//
+			//first time loading pixel in boundary bitmaps?
+			if(infieldPixelBoundariesResult == null) {
+				infieldPixelBoundariesResult=res.boolMatrices;
 				
 			}
-			endTime =  System.currentTimeMillis();
-			ellapsedtime = Math.floorDiv(endTime-startTime, 1000);
-			System.out.println("Fusion took approx. "+ellapsedtime+" seconds.");
-			
-			
-			//append the result to final dataset
-			for(int i = 0;i <_inputDatasetBuffer.size();i++) {
-				SpatialData _pt= _inputDatasetBuffer.getSpatialData(i);
-				outputDataset.addSpatialData(_pt);
-			}
-			
-			_inputDatasetBuffer.clear();
-			
-			
-		}//end iterate each tiff to read and fuse
-		System.out.println("writing fusion results to "+outputCSV);
-		FileHandler.writeSpatialDatasetToFile(outputCSV,header, outputDataset,true,",",false);
+		}
 		
-	
+
+			System.out.println("writing fusion results to "+outputCSV);
+
+			FileHandler.writeSpatialDatasetToFile(outputCSV,header,_inputDataset,true,",",false);
+
+		
+
 	}else if(operation.equals("-imagery-fusion-direction-of-images")) {//fuse yield with all GeoTIFF imagery in a directory
 		//assumes all the geotiffs have the same extend and represent different bands/vegetation indices
 		//so the in-boundary matrix is only computed once
@@ -1972,4 +2004,167 @@ public class YieldProcessor {
 	    return pointList.toArray(new double[pointList.size()][]);
 	}
 
+	
+	static FusionTempResult applyMultiImageFusion(String inputCSV, String outputCSV,String inputGeotiffDir,String imageryColName,double radius,SpatialData.DistanceMetric distMetric
+			,String rExecutablePath, String rasterInfoRScriptPath, String fieldBoundaryPath, int numberOfThreads,Rectangle2D innerFieldBoundaryRect,
+			List<CompressedBooleanMatrix> preloadedinfieldPixelBoundaries, String header,SpatialDataset _inputDataset,SpatialDataIndex index) throws IOException, ImageReadException {
+
+	
+		String sep = ",";
+		
+		
+		//used to store results of index lookup for yield sbuareas
+		SpatialDataset _inputDatasetBuffer = new SpatialDataset(_inputDataset.size()); 
+		
+		SpatialDataset outputDataset = new SpatialDataset(_inputDataset.size());
+		
+
+		boolean computedHeader=false;
+
+		
+		SpatialDataset boundaryPts =null;
+		
+		
+		Polygon2D fieldBoundaryPoly =null;
+		
+		if(preloadedinfieldPixelBoundaries== null) {
+			//read boundary file
+			boundaryPts = FileHandler.readCSVIntoSpatialDataset(fieldBoundaryPath, null, sep);
+			
+			//convert field boundary to polygon 2d (used to avoid including raster pixels outside the field)
+			fieldBoundaryPoly =boundaryPts.toPolygon2D();
+		}
+		
+		
+		
+		//all the input GeoTIFFs in  directory specified by inputGeotiffDir
+		File[] inputTiffs = FileHandler.getFilesInDirectory(inputGeotiffDir, ".tif");
+		
+		if(inputTiffs == null || inputTiffs.length==0) {
+			System.out.println("can't fuse yield with imagery, no imagery in "+ inputGeotiffDir);
+			return null;
+		}
+		
+		//when we are given a list of in field pixels bit maps, we avoid recomputing them
+		List<CompressedBooleanMatrix> infieldPixelBoundariesResult = new ArrayList<CompressedBooleanMatrix>(inputTiffs.length);
+		
+		
+		if (preloadedinfieldPixelBoundaries != null) {
+
+			
+			if(preloadedinfieldPixelBoundaries.size() != inputTiffs.length) {
+				throw new IllegalStateException("Expected all the directories to have same number of sliced tifs, but " +inputGeotiffDir +"did not");
+			}
+		}
+		
+		
+		//the list of bounding boxes of yield points already process
+		List<BoundingBox> bbBlackList = new ArrayList<BoundingBox>(inputTiffs.length);
+		
+		//iterate over every tiff and load them individually into memory for fusion
+		//the GeoTiffs are assumed to fully contain the bounding box of each cell in
+		//the grid of the inputCSV that was split (exactly one geotiff will contain the cell) 
+		for(int k = 0;k<inputTiffs.length;k++) {
+			File inputTiffFile = inputTiffs[k];
+			MyRaster r = null;
+			//haven't created the pxiel boundary bool matrix ye?
+			if (preloadedinfieldPixelBoundaries == null) {
+				r =new MyRaster(fieldBoundaryPoly,innerFieldBoundaryRect);
+			}else {
+				//we avoid rebuilding the pixel in field matrix. Already build from another directory fusion
+				r =new MyRaster(preloadedinfieldPixelBoundaries.get(k));
+			}
+				
+			String inputTiff = inputTiffFile.getAbsolutePath();
+			System.out.print("reading raster: "+inputTiff);
+			
+			long startTime =  System.currentTimeMillis();   
+			r.load(rExecutablePath, rasterInfoRScriptPath, inputTiff,numberOfThreads);
+			
+			infieldPixelBoundariesResult.add(r.getPixelInsideBoundaryFlags());
+			
+			long endTime =  System.currentTimeMillis();   
+	
+			long ellapsedtime = Math.floorDiv(endTime-startTime, 1000);
+			System.out.println("... took approx. "+ellapsedtime+" seconds.");
+			
+			Rectangle2D rasterBB = r.getBoundingBox();
+			
+			//this blackbox raster will have margin's trimmed to not fused yiel at very edge of image (-2 * radisu to make sure yield  in fusion be in it))
+			BoundingBox _rasterBB=new BoundingBox(rasterBB.getMinX()+(radius*2),rasterBB.getMinY()+(radius*2),rasterBB.getMaxX()-(2*radius),rasterBB.getMaxY()-(2*radius));
+			
+			//lookup all yield points inside the raster via the index (exlcude those already processed)
+			 index.__getSpatialDataInBoundingBox(_rasterBB, _inputDatasetBuffer, bbBlackList);
+			 
+			 //take note of area already processed
+			 bbBlackList.add(_rasterBB);
+			 
+
+			String [] aggOperatorNames = {"mean","max","min"};
+	
+			int bandFromIx=0;
+			int bandToIx=0;
+			
+			if(r.isRGBRaster()) {
+				bandFromIx=0;
+				bandToIx=2;
+			}
+			
+			if(!computedHeader) {
+
+				for(String aggOpName : aggOperatorNames) {
+					header = header+",";
+					if(r.isMSRaster()) {
+						header = header + "\"MS_" + imageryColName + "_"+aggOpName+"\"";
+					}else {
+						header = header + "\"RGB_Red_"+aggOpName+"\",\""+ "RGB_Green_"+aggOpName+"\",\""+ "RGB_Blue_"+aggOpName+"\"";
+					}
+				}
+				computedHeader=true;
+			}
+			
+			System.out.print("fusiong yield data and imagery ");			
+			
+			startTime =  System.currentTimeMillis();   
+			for(int bandIx =bandFromIx; bandIx <=bandToIx;bandIx++ ) {
+				if(_inputDatasetBuffer.size() >= numberOfThreads) {
+					r.multiThreaded_fuseAll(numberOfThreads,_inputDatasetBuffer, sep, radius, distMetric, bandIx);
+				}else {
+					//single thread to process very small dataset
+					r.multiThreaded_fuseAll(1,_inputDatasetBuffer, sep, radius, distMetric, bandIx);	
+				}
+				
+			}
+			endTime =  System.currentTimeMillis();
+			ellapsedtime = Math.floorDiv(endTime-startTime, 1000);
+			System.out.println("Fusion took approx. "+ellapsedtime+" seconds.");
+			
+			
+			//append the result to final dataset
+			for(int i = 0;i <_inputDatasetBuffer.size();i++) {
+				SpatialData _pt= _inputDatasetBuffer.getSpatialData(i);
+				outputDataset.addSpatialData(_pt);
+			}
+			
+			_inputDatasetBuffer.clear();
+			
+			
+		}//end iterate each tiff to read and fuse
+		
+		FusionTempResult res = new FusionTempResult(infieldPixelBoundariesResult,header);
+		
+		//note that we don't have to return a dataset since the fusion results were directly appended to the attributes of the input dataset
+		return res;
+	}
+	
+	private static class FusionTempResult{
+		List<CompressedBooleanMatrix> boolMatrices;
+		String header;
+		public FusionTempResult( List<CompressedBooleanMatrix> boolMatrices,String header) {
+			super();;
+			this.boolMatrices = boolMatrices;
+			this.header = header;
+		}
+		
+	}
 }

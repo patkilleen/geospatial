@@ -25,7 +25,7 @@ class TestMyRaster {
 	private static final double DOUBLE_COMPARE_EPSILON=0.000001;
 	private static final String TEST_RASTER_FILE_PATH = "test-data/example-raster.tif";
 	private static final String TEST_RASTER_CSV_FILE_PATH = "test-data/example-raster.csv";
-	private static final String PATH_TO_R_SCRIPT_EXE = "/path/to/R/R-4.1.3/bin/Rscript.exe";//environment dependent!	
+	private static final String PATH_TO_R_SCRIPT_EXE = "/path/to/R/R-4.1.3/bin/Rscript.exe";//environment dependent!
 	private static final String PATH_TO_R_RASTER_INFO_SCRIPT = "r/raster-info.r";
 	private static final int NUMBER_THREADS_FOR_BOUNDARY_MATRIX_CREATION=1;
 

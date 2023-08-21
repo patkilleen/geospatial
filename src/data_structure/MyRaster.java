@@ -113,7 +113,7 @@ public class MyRaster {
 		this.pixelInsideBoundaryFlags=pixelInsideBoundaryFlags;
 
 	}
-	
+
 	
 	public int getNumBands() {
 		return numBands;
